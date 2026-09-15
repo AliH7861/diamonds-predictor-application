@@ -41,6 +41,13 @@ class FakeStreamlit:
         self.events.append(("expander", label))
         return Block()
 
+    def columns(self, widths, **_kwargs):
+        return tuple(Block() for _ in widths)
+
+    def button(self, label, **_kwargs):
+        self.events.append(("button", label))
+        return False
+
     def __getattr__(self, name):
         def record(*args, **kwargs):
             self.events.append((name, args[0] if args else kwargs))
@@ -67,7 +74,9 @@ class AssistantUITests(unittest.TestCase):
     def test_normal_mode_hides_debug_panel(self):
         st = FakeStreamlit("Find a diamond", developer_mode=False)
         render_app(st, FakeAssistant)
-        self.assertEqual([item["role"] for item in st.session_state["messages"]], ["user", "assistant"])
+        active_id = st.session_state["active_chat_id"]
+        messages = st.session_state["chat_sessions"][active_id]["messages"]
+        self.assertEqual([item["role"] for item in messages], ["user", "assistant"])
         self.assertIn(("markdown", "A tested answer."), st.events)
         self.assertTrue(any(event[0] == "dataframe" for event in st.events))
         self.assertFalse(any(event[0] == "expander" for event in st.events))

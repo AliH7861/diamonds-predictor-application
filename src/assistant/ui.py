@@ -1,4 +1,6 @@
-"""Streamlit presentation kept separate from retrieval and model logic."""
+"""Streamlit workspace for the local diamond research assistant."""
+
+from uuid import uuid4
 
 import pandas as pd
 
@@ -7,25 +9,97 @@ from .ui_content import APP_DESCRIPTION, APP_TITLE, INPUT_PLACEHOLDER, STARTER_Q
 
 PAGE_STYLES = """
 <style>
-    .stApp { background: #f5f3ee; color: #1f2933; }
-    .block-container { max-width: 1120px; padding-top: 3.2rem; padding-bottom: 5rem; }
-    .assistant-kicker { color: #8b5e34; font-size: .78rem; font-weight: 700;
-        letter-spacing: .12em; text-transform: uppercase; margin-bottom: .5rem; }
-    .assistant-title { color: #17212b; font-family: Georgia, serif; font-size: 3rem;
-        line-height: 1.05; margin: 0 0 .8rem 0; }
-    .assistant-description { color: #52606d; font-size: 1.05rem; max-width: 760px;
-        line-height: 1.7; margin-bottom: 1.5rem; }
-    .assistant-rule { border: 0; border-top: 1px solid #d9d3c7; margin: 1.5rem 0 2rem; }
-    [data-testid="stChatMessage"] { background: #ffffff; border: 1px solid #e3ded4;
-        border-radius: 12px; padding: .55rem .8rem; margin-bottom: .75rem; box-shadow: none; }
+    :root {
+        --forest: #123b2a;
+        --leaf: #247a52;
+        --mint: #e6f2eb;
+        --line: #d6e3da;
+        --ink: #193028;
+        --muted: #63756d;
+    }
+    header[data-testid="stHeader"] { background: transparent; }
+    .stApp { background: #eef4f0; color: var(--ink); }
+    .block-container { max-width: 1240px; padding-top: 1.2rem; padding-bottom: 4rem; }
+    .topbar {
+        align-items: center; background: #fff; border: 1px solid var(--line);
+        border-radius: 14px; display: flex; justify-content: space-between;
+        margin-bottom: 1rem; min-height: 58px; padding: 0 1.15rem;
+    }
+    .brand { align-items: center; color: var(--forest); display: flex; font-weight: 750; gap: .7rem; }
+    .brand-mark { background: var(--leaf); border-radius: 3px; display: inline-block;
+        height: 18px; transform: rotate(45deg); width: 18px; }
+    .top-links { display: flex; gap: 1.6rem; color: var(--muted); font-size: .88rem; }
+    .top-links span:first-child { color: var(--forest); font-weight: 700; }
+    .system-pill { background: var(--mint); border: 1px solid #c5decf; border-radius: 999px;
+        color: var(--forest); font-size: .78rem; font-weight: 700; padding: .4rem .75rem; }
+    [data-testid="stHorizontalBlock"] { align-items: stretch; gap: .85rem; }
+    [data-testid="column"] { background: #fff; border: 1px solid var(--line); border-radius: 14px;
+        min-height: 690px; padding: 1rem 1rem 1.25rem; }
+    .rail-kicker { color: var(--leaf); font-size: .72rem; font-weight: 800;
+        letter-spacing: .1em; text-transform: uppercase; }
+    .rail-title { color: var(--forest); font-size: 1.05rem; font-weight: 750; margin: .3rem 0 .1rem; }
+    .rail-copy { color: var(--muted); font-size: .78rem; margin-bottom: .85rem; }
+    .history-label { color: var(--muted); font-size: .72rem; font-weight: 700;
+        letter-spacing: .06em; margin: 1.25rem 0 .4rem; text-transform: uppercase; }
+    .workspace-kicker { color: var(--leaf); font-size: .75rem; font-weight: 800;
+        letter-spacing: .11em; text-transform: uppercase; }
+    .assistant-title { color: var(--forest); font-family: Georgia, serif; font-size: 2.25rem;
+        line-height: 1.08; margin: .35rem 0 .65rem; }
+    .assistant-description { color: var(--muted); font-size: .98rem; line-height: 1.65;
+        max-width: 720px; }
+    .welcome-panel { background: linear-gradient(145deg, #f7fbf8, #e8f3ec);
+        border: 1px solid #d2e5d8; border-radius: 14px; margin: 1.3rem 0 1rem; padding: 2rem; }
+    .welcome-title { color: var(--forest); font-family: Georgia, serif; font-size: 1.45rem;
+        margin-bottom: .4rem; }
+    .welcome-copy { color: var(--muted); font-size: .9rem; line-height: 1.55; }
+    .starter-card { background: #fbfdfb; border: 1px solid var(--line); border-radius: 10px;
+        color: #365448; font-size: .84rem; margin: .45rem 0; padding: .75rem .9rem; }
+    .stButton > button { background: #f8fbf9; border: 1px solid var(--line); border-radius: 9px;
+        color: var(--forest); min-height: 2.55rem; text-align: left; }
+    .stButton > button:hover { border-color: var(--leaf); color: var(--leaf); }
+    [data-testid="stChatMessage"] { background: #fbfdfb; border: 1px solid var(--line);
+        border-radius: 12px; margin-bottom: .7rem; padding: .55rem .8rem; }
     [data-testid="stChatMessageAvatarUser"],
     [data-testid="stChatMessageAvatarAssistant"] { display: none; }
-    [data-testid="stChatInput"] { border-color: #b9aa94; }
-    div[data-testid="stExpander"] { background: #fff; border: 1px solid #d9d3c7;
-        border-radius: 10px; }
-    .starter { color: #6b6258; font-size: .9rem; padding: .35rem 0; }
+    [data-testid="stChatInput"] { border-color: #a9c9b5; }
+    div[data-testid="stExpander"] { background: #fbfdfb; border: 1px solid var(--line); }
+    @media (max-width: 760px) {
+        .top-links { display: none; }
+        [data-testid="column"] { min-height: auto; }
+        .assistant-title { font-size: 1.8rem; }
+    }
 </style>
 """
+
+
+def _title_from_messages(messages: list[dict]) -> str:
+    """Create a compact history label from the first user message."""
+    first = next((item["content"] for item in messages if item.get("role") == "user"), None)
+    if not first:
+        return "New diamond search"
+    return first.strip()[:38] + ("..." if len(first.strip()) > 38 else "")
+
+
+def _initialize_sessions(st) -> None:
+    """Create conversation storage and migrate the earlier single-chat state."""
+    if "chat_sessions" in st.session_state:
+        return
+    existing = list(st.session_state.get("messages", []))
+    session_id = "chat-initial"
+    st.session_state["chat_sessions"] = {
+        session_id: {"title": _title_from_messages(existing), "messages": existing}
+    }
+    st.session_state["active_chat_id"] = session_id
+
+
+def _create_session(st) -> None:
+    """Add and activate an empty conversation workspace."""
+    session_id = f"chat-{uuid4().hex[:8]}"
+    st.session_state["chat_sessions"][session_id] = {
+        "title": "New diamond search",
+        "messages": [],
+    }
+    st.session_state["active_chat_id"] = session_id
 
 
 def _render_trace(st, result: dict, expanded: bool = True) -> None:
@@ -33,65 +107,69 @@ def _render_trace(st, result: dict, expanded: bool = True) -> None:
     with st.expander("Developer evidence and execution trace", expanded=expanded):
         st.markdown("#### 1. Routed intent and sources")
         st.json(result.get("route", {}))
-
         st.markdown("#### 2. Internal structured plan")
         st.json(result["plan"])
-
         st.markdown("#### 3. Exact dataset matches")
         if result["matches"].empty:
             st.write("No exact dataset rows were requested or matched.")
         else:
             st.dataframe(result["matches"], width="stretch", hide_index=True)
-
         st.markdown("#### 4. Structured similarity matches")
         similar = result.get("similar_matches", pd.DataFrame())
         if similar.empty:
             st.write("Structured similarity was not needed for this question.")
         else:
             st.dataframe(similar, width="stretch", hide_index=True)
-
         st.markdown("#### 5. RAG embedding searches")
         st.write(result["initial_queries"] + result["extra_queries"] or "No embedding search yet.")
-
         st.markdown("#### 6. Similar knowledge chunks")
         details = result.get("knowledge_details", [])
         if details:
-            score_rows = pd.DataFrame([
-                {
-                    "Source": item["source"],
-                    "Similarity": item["similarity"],
-                    "Matched query": item["query"],
-                }
-                for item in details
-            ])
-            st.dataframe(score_rows, width="stretch", hide_index=True)
+            rows = [{"Source": item["source"], "Similarity": item["similarity"], "Matched query": item["query"]} for item in details]
+            st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
             for number, item in enumerate(details, start=1):
                 st.markdown(f"**Context {number} — {item['source']}**")
                 st.write(item["document"])
         else:
             st.write("Retrieval waits until the assistant has enough buying information.")
-
         st.markdown("#### 7. Preference memory")
         st.write(result["retrieved_memory"] or "No earlier preferences retrieved.")
         if result["saved_memory"]:
             st.caption(f"Saved this preference: {result['saved_memory']}")
-
         st.markdown("#### 8. Compact evidence sent to Qwen")
         st.json(result.get("evidence", {}))
-
         st.markdown("#### 9. Pipeline stages and ANN status")
         st.json(result.get("trace", []))
 
 
+def _render_message_result(st, result: dict, developer_mode: bool, heading: bool = False) -> None:
+    """Render recommendation rows and optional pipeline evidence for one answer."""
+    recommendations = result.get("similar_matches")
+    if recommendations is None or recommendations.empty:
+        recommendations = result["matches"]
+    if not recommendations.empty:
+        if heading:
+            st.subheader("Recommended dataset examples")
+        st.dataframe(recommendations, width="stretch", hide_index=True)
+    if developer_mode:
+        _render_trace(st, result, expanded=heading)
+
+
 def render_app(st, assistant_factory) -> None:
-    """Render the chat page with an injected factory so CI can test it locally."""
+    """Render a multi-conversation research workspace with an injected backend."""
     st.set_page_config(page_title=APP_TITLE, layout="wide")
     st.markdown(PAGE_STYLES, unsafe_allow_html=True)
-    st.markdown('<div class="assistant-kicker">Dataset and model research assistant</div>', unsafe_allow_html=True)
-    st.markdown(f'<h1 class="assistant-title">{APP_TITLE}</h1>', unsafe_allow_html=True)
-    st.markdown(f'<div class="assistant-description">{APP_DESCRIPTION}</div>', unsafe_allow_html=True)
-    st.markdown('<hr class="assistant-rule">', unsafe_allow_html=True)
-    developer_mode = bool(st.toggle("Developer mode", value=False))
+    st.markdown(
+        """
+        <div class="topbar">
+            <div class="brand"><span class="brand-mark"></span><span>Diamond Lab</span></div>
+            <div class="top-links"><span>Assistant</span><span>Models</span><span>Experiments</span><span>Research</span></div>
+            <div class="system-pill">Local workspace</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    _initialize_sessions(st)
 
     @st.cache_resource
     def load_assistant():
@@ -101,57 +179,68 @@ def render_app(st, assistant_factory) -> None:
         assistant = load_assistant()
     except Exception as error:
         st.error(f"Assistant setup failed: {error}")
-        st.info(
-            "For local mode, check the dataset and Ollama. For split mode, check "
-            "DIAMOND_ASSISTANT_API_URL, the API token, and the local backend."
-        )
+        st.info("Check the dataset, Ollama, or the configured local assistant API.")
         return
 
-    if "messages" not in st.session_state:
-        st.session_state["messages"] = []
-        st.markdown("**Try one of these:**")
-        for starter in STARTER_QUESTIONS:
-            st.markdown(f'<div class="starter">{starter}</div>', unsafe_allow_html=True)
-    for message in st.session_state["messages"]:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-            if message["role"] == "assistant" and message.get("result"):
-                recommendations = message["result"].get("similar_matches")
-                if recommendations is None or recommendations.empty:
-                    recommendations = message["result"]["matches"]
-                if not recommendations.empty:
-                    st.dataframe(
-                        recommendations, width="stretch", hide_index=True
-                    )
-                if developer_mode:
-                    _render_trace(st, message["result"], expanded=False)
+    history_column, workspace_column = st.columns([0.27, 0.73], gap="small")
+    with history_column:
+        st.markdown('<div class="rail-kicker">Research workspace</div>', unsafe_allow_html=True)
+        st.markdown('<div class="rail-title">Conversation jobs</div>', unsafe_allow_html=True)
+        st.markdown('<div class="rail-copy">Open an earlier analysis or begin a new one.</div>', unsafe_allow_html=True)
+        if st.button("New conversation", use_container_width=True, type="primary"):
+            _create_session(st)
+            st.rerun()
+        sessions = st.session_state["chat_sessions"]
+        st.markdown(f'<div class="history-label">History ({len(sessions):02d})</div>', unsafe_allow_html=True)
+        for session_id, session in reversed(list(sessions.items())):
+            label = session["title"]
+            if session_id == st.session_state["active_chat_id"]:
+                label = f"Current · {label}"
+            if st.button(label, key=f"open-{session_id}", use_container_width=True):
+                st.session_state["active_chat_id"] = session_id
+                st.rerun()
+        st.markdown('<div class="history-label">Tools</div>', unsafe_allow_html=True)
+        developer_mode = bool(st.toggle("Developer evidence", value=False))
+        st.caption("Inspect routes, filters, embeddings, retrieved context, and model evidence.")
 
-    question = st.chat_input(INPUT_PLACEHOLDER)
-    if not question:
-        return
-    st.session_state["messages"].append({"role": "user", "content": question})
-    with st.chat_message("user"):
-        st.markdown(question)
+    active_id = st.session_state["active_chat_id"]
+    active_session = st.session_state["chat_sessions"][active_id]
+    messages = active_session["messages"]
 
-    with st.chat_message("assistant"):
-        with st.spinner("Searching diamonds and relevant knowledge..."):
-            try:
-                result = assistant.ask(
-                    question,
-                    conversation=st.session_state["messages"][:-1],
-                )
-            except Exception as error:
-                st.error(f"The assistant could not answer: {error}")
-                return
-        st.markdown(result["answer"])
-        recommendations = result.get("similar_matches")
-        if recommendations is None or recommendations.empty:
-            recommendations = result["matches"]
-        if not recommendations.empty:
-            st.subheader("Recommended dataset examples")
-            st.dataframe(recommendations, width="stretch", hide_index=True)
-        if developer_mode:
-            _render_trace(st, result)
-    st.session_state["messages"].append(
-        {"role": "assistant", "content": result["answer"], "result": result}
-    )
+    with workspace_column:
+        st.markdown('<div class="workspace-kicker">Dataset and model research assistant</div>', unsafe_allow_html=True)
+        st.markdown(f'<h1 class="assistant-title">{APP_TITLE}</h1>', unsafe_allow_html=True)
+        st.markdown(f'<div class="assistant-description">{APP_DESCRIPTION}</div>', unsafe_allow_html=True)
+        if not messages:
+            st.markdown(
+                '<div class="welcome-panel"><div class="welcome-title">Make a confident diamond decision</div>'
+                '<div class="welcome-copy">Describe your budget, preferred size, and quality priorities. '
+                'The assistant searches real dataset examples and grounds its explanation in retrieved diamond knowledge.</div></div>',
+                unsafe_allow_html=True,
+            )
+            for starter in STARTER_QUESTIONS:
+                st.markdown(f'<div class="starter-card">{starter}</div>', unsafe_allow_html=True)
+
+        for message in messages:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
+                if message["role"] == "assistant" and message.get("result"):
+                    _render_message_result(st, message["result"], developer_mode)
+
+        question = st.chat_input(INPUT_PLACEHOLDER)
+        if not question:
+            return
+        messages.append({"role": "user", "content": question})
+        active_session["title"] = _title_from_messages(messages)
+        with st.chat_message("user"):
+            st.markdown(question)
+        with st.chat_message("assistant"):
+            with st.spinner("Searching dataset rows, model evidence, and diamond knowledge..."):
+                try:
+                    result = assistant.ask(question, conversation=messages[:-1])
+                except Exception as error:
+                    st.error(f"The assistant could not answer: {error}")
+                    return
+            st.markdown(result["answer"])
+            _render_message_result(st, result, developer_mode, heading=True)
+        messages.append({"role": "assistant", "content": result["answer"], "result": result})
