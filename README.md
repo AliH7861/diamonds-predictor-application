@@ -33,8 +33,8 @@ Read or present the project in this order:
 | ANN price regression | Complete | Three feature experiments, validation/test metrics, saved ANN |
 | Buyer segmentation | Complete | K = 3, 5, 7, 10 comparison, cluster profiles, saved K-Means pipeline |
 | Local AI assistant | Complete | Interview, embeddings, Chroma retrieval, dataset search, memory, grounded response |
-| Automated testing and CI | Complete locally | Unit, integration, RAG, clustering, end-to-end, lint, and Docker jobs; GitHub status begins after the first push |
-| GitHub submission | In progress | The local repository is ready; the public GitHub repository and Actions run are created during submission |
+| Automated testing and CI | Complete | Unit, integration, RAG, clustering, end-to-end, lint, Docker, and GitHub Actions checks |
+| GitHub submission | Complete | Public repository: [AliH7861/diamonds-predictor-application](https://github.com/AliH7861/diamonds-predictor-application) |
 
 ## End-to-end architecture
 
