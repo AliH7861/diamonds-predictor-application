@@ -9,7 +9,7 @@ from src.assistant.client import AssistantAPIClient
 
 
 class FakeAssistant:
-    def ask(self, question, conversation=None, on_token=None):
+    def ask(self, question, conversation=None, on_token=None, state=None):
         if on_token:
             on_token("Grounded ")
             on_token("answer")
@@ -28,6 +28,7 @@ class FakeAssistant:
             "saved_memory": None,
             "evidence": {},
             "trace": [{"stage": "generation", "result": "completed"}],
+            "conversation_state": state or {},
         }
 
 

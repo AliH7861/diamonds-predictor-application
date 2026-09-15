@@ -4,7 +4,7 @@ from dataclasses import asdict
 
 import pandas as pd
 
-from .clarification import build_buying_plan, parse_model_inputs
+from .clarification import build_buying_plan, normalize_user_text, parse_model_inputs
 from .memory import PreferenceMemory
 from .prompt_builder import build_evidence_payload, build_generation_prompt
 from .retrieval import KnowledgeRetriever
@@ -38,14 +38,69 @@ class DiamondAssistant:
 
     @staticmethod
     def _conversation_text(conversation: list[dict] | None) -> str:
-        """Pass at most eight recent visible turns and 4,000 characters onward."""
+        """Pass only the latest exchange; durable constraints live in compact state."""
         if not conversation:
             return "No earlier conversation."
         text = "\n".join(
             f"{item.get('role', 'user')}: {item.get('content', '')}"
-            for item in conversation[-8:]
+            for item in conversation[-2:]
         )
-        return text[-4000:]
+        return text[-1600:]
+
+    @staticmethod
+    def _state_text(state: dict | None) -> str:
+        """Express compact structured preferences for deterministic parsing."""
+        if not state:
+            return "No saved search preferences."
+        parts = []
+        if state.get("max_price") is not None:
+            parts.append(f"maximum budget ${state['max_price']}")
+        target = state.get("target_carat")
+        tolerance = state.get("carat_tolerance")
+        if target is not None and tolerance:
+            parts.append(
+                f"between {max(0, target - tolerance):.4g} and "
+                f"{target + tolerance:.4g} carats"
+            )
+        elif target is not None:
+            parts.append(f"{target} carats")
+        for field in ("cut", "color", "clarity"):
+            if state.get(field):
+                parts.append(f"{field} {state[field]}")
+        if state.get("priorities"):
+            priorities = state["priorities"]
+            parts.append(f"{priorities[0]} matters most")
+            parts.extend(f"additional priority {item}" for item in priorities[1:])
+        for field in ("clarity", "cut", "color"):
+            if state.get(f"no_{field}_preference"):
+                parts.append(f"I don't care about {field}")
+        return "Saved search preferences: " + "; ".join(parts) + "."
+
+    @staticmethod
+    def _next_state(plan: DiamondQueryPlan, state: dict | None, question: str) -> dict:
+        """Store only reusable filters instead of repeatedly sending full chat history."""
+        result = dict(state or {})
+        for field in (
+            "min_price", "max_price", "target_carat", "carat_tolerance",
+            "depth", "table", "x", "y", "z", "cut", "color", "clarity",
+            "priorities",
+        ):
+            result[field] = getattr(plan, field)
+        current = normalize_user_text(question).casefold().replace("’", "'")
+        for field in ("clarity", "cut", "color"):
+            removes = (
+                f"don't care about {field}" in current
+                or f"dont care about {field}" in current
+                or f"remove the {field}" in current
+                or f"remove {field}" in current
+                or f"forget {field}" in current
+            )
+            if removes:
+                result[f"no_{field}_preference"] = True
+            elif getattr(plan, field):
+                result[f"no_{field}_preference"] = False
+        result["pending_buying"] = plan.needs_clarification
+        return result
 
     @staticmethod
     def _reference_from_conversation(conversation: list[dict] | None):
@@ -60,7 +115,14 @@ class DiamondAssistant:
                     return pd.Series(frame[0])
         return None
 
-    def _empty_result(self, plan: DiamondQueryPlan, route, answer: str, memory: list[str]) -> dict:
+    def _empty_result(
+        self,
+        plan: DiamondQueryPlan,
+        route,
+        answer: str,
+        memory: list[str],
+        state: dict | None = None,
+    ) -> dict:
         """Return the same response shape while waiting for clarification."""
         empty = self.catalog.diamonds.head(0).copy()
         trace = [
@@ -85,6 +147,7 @@ class DiamondAssistant:
             "saved_memory": None,
             "evidence": {},
             "trace": trace,
+            "conversation_state": state or {},
         }
 
     def ask(
@@ -92,33 +155,91 @@ class DiamondAssistant:
         question: str,
         conversation: list[dict] | None = None,
         on_token=None,
+        state: dict | None = None,
     ) -> dict:
         """Route, clarify, retrieve only needed evidence, compact it, and answer."""
         if not isinstance(question, str) or not question.strip():
             raise ValueError("Question must contain text.")
 
         conversation_text = self._conversation_text(conversation)
-        route = route_question(question, conversation_text)
+        state_text = self._state_text(state)
+        context_text = f"{state_text}\n{conversation_text}"
+        route = route_question(question, context_text)
+        if route.intent == "unsupported_dataset_field":
+            empty = self.catalog.diamonds.head(0).copy()
+            answer = (
+                "The dataset does not contain certification, mine origin, inclusion type, "
+                "customer demographics, sales channel, or sale date, so this project cannot "
+                "determine that information."
+            )
+            return {
+                "status": "answered", "answer": answer, "matches": empty,
+                "similar_matches": empty, "route": asdict(route),
+                "plan": asdict(DiamondQueryPlan()), "initial_queries": [],
+                "needed_second_retrieval": False, "extra_queries": [],
+                "knowledge": [], "knowledge_details": [], "retrieved_memory": [],
+                "saved_memory": None, "evidence": {},
+                "trace": [
+                    {"stage": "routing", "result": asdict(route)},
+                    {"stage": "generation", "result": "skipped; field unavailable"},
+                ],
+                "conversation_state": dict(state or {}),
+            }
         model_inputs = {}
         if route.intent in {"price_prediction", "clarity_prediction"}:
             model_inputs, missing = parse_model_inputs(
-                f"{conversation_text}\n{question}", route.intent
+                f"{context_text}\n{question}", route.intent
             )
             if missing:
                 labels = {"x": "x dimension", "y": "y dimension", "z": "z dimension"}
                 requested = ", ".join(labels.get(item, item) for item in missing)
                 return self._empty_result(
                     DiamondQueryPlan(), route,
-                    f"To run the saved ANN, please provide: {requested}.", []
+                    f"To run the saved ANN, please provide: {requested}.", [], state
                 )
-        buying_plan = build_buying_plan(question, conversation_text) if route.use_dataset else None
+        buying_plan = (
+            build_buying_plan(
+                question,
+                context_text,
+                require_recommendation_details=route.intent != "dataset_count",
+            )
+            if route.use_dataset else None
+        )
+        next_state = (
+            self._next_state(buying_plan, state, question)
+            if buying_plan is not None else dict(state or {})
+        )
 
         # Clarification precedes memory lookup, embeddings, dataset search, and inference.
         if buying_plan is not None and buying_plan.needs_clarification:
             answer = buying_plan.clarifying_question or (
                 "What budget, carat size, and quality factor matter most to you?"
             )
-            return self._empty_result(buying_plan, route, answer, [])
+            return self._empty_result(buying_plan, route, answer, [], next_state)
+
+        # Exact count questions are answered by Pandas alone. They do not need
+        # embeddings or generative inference.
+        if route.intent == "dataset_count" and buying_plan is not None:
+            all_matches = self.catalog.search(buying_plan, limit=None)
+            matches = all_matches.head(self.top_diamonds).copy()
+            count = len(all_matches)
+            answer = f"There are {count:,} matching diamonds in the dataset."
+            empty = self.catalog.diamonds.head(0).copy()
+            trace = [
+                {"stage": "routing", "result": asdict(route)},
+                {"stage": "structured_plan", "result": asdict(buying_plan)},
+                {"stage": "dataset_count", "result": count},
+                {"stage": "generation", "result": "skipped; deterministic answer"},
+            ]
+            return {
+                "status": "answered", "answer": answer, "matches": matches,
+                "similar_matches": empty, "route": asdict(route),
+                "plan": asdict(buying_plan), "initial_queries": [],
+                "needed_second_retrieval": False, "extra_queries": [],
+                "knowledge": [], "knowledge_details": [], "retrieved_memory": [],
+                "saved_memory": None, "evidence": {"matching_count": count},
+                "trace": trace, "conversation_state": next_state,
+            }
 
         memory = self.memory.retrieve(question) if route.use_memory else []
         if route.intent in {"price_prediction", "clarity_prediction"}:
@@ -148,6 +269,27 @@ class DiamondAssistant:
             if route.use_dataset else self.catalog.diamonds.head(0).copy()
         )
 
+        if route.intent == "recommendation" and plan.search_dataset and matches.empty:
+            empty = self.catalog.diamonds.head(0).copy()
+            answer = (
+                "No diamonds in the dataset match all of those constraints. "
+                "Change the budget, size, cut, color, or clarity requirement and I can search again."
+            )
+            return {
+                "status": "answered", "answer": answer, "matches": empty,
+                "similar_matches": empty, "route": asdict(route), "plan": asdict(plan),
+                "initial_queries": [], "needed_second_retrieval": False,
+                "extra_queries": [], "knowledge": [], "knowledge_details": [],
+                "retrieved_memory": memory, "saved_memory": None,
+                "evidence": {"matching_count": 0},
+                "trace": [
+                    {"stage": "routing", "result": asdict(route)},
+                    {"stage": "dataset_search", "result": 0},
+                    {"stage": "generation", "result": "skipped; no exact matches"},
+                ],
+                "conversation_state": next_state,
+            }
+
         similar = self.catalog.diamonds.head(0).copy()
         if route.use_similarity:
             reference = self._reference_from_conversation(conversation)
@@ -159,6 +301,7 @@ class DiamondAssistant:
                     route,
                     "Which diamond or earlier recommendation should I use as the comparison point?",
                     memory,
+                    next_state,
                 )
             similar = self.similarity.find(reference, plan, question, self.top_diamonds)
 
@@ -195,7 +338,7 @@ class DiamondAssistant:
             answer = self.llm.complete(system_prompt, prompt)
         else:
             answer = self.llm.complete(system_prompt, prompt, on_token=on_token)
-        saved_memory = self.memory.save_explicit(f"{conversation_text}\n{question}")
+        saved_memory = self.memory.save_explicit(f"{context_text}\n{question}")
         model_status = (
             self.enricher.status()
             if self.enricher is not None and hasattr(self.enricher, "status")
@@ -229,4 +372,5 @@ class DiamondAssistant:
             "saved_memory": saved_memory,
             "evidence": evidence,
             "trace": trace,
+            "conversation_state": next_state,
         }

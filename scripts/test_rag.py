@@ -136,7 +136,11 @@ def _check_buying_conversation(assistant: DiamondAssistant, llm: DeterministicLL
         {"role": "assistant", "content": first["answer"]},
     ]
     second_question = "About 1 carat."
-    second = assistant.ask(second_question, conversation=conversation)
+    second = assistant.ask(
+        second_question,
+        conversation=conversation[-2:],
+        state=first["conversation_state"],
+    )
     if second["status"] != "needs_clarification" or second["knowledge"]:
         raise AssertionError("CI: clarity priority should require a concrete clarity grade.")
     print("PASS  assistant continues clarification until the priority is concrete")
@@ -145,7 +149,11 @@ def _check_buying_conversation(assistant: DiamondAssistant, llm: DeterministicLL
         {"role": "user", "content": second_question},
         {"role": "assistant", "content": second["answer"]},
     ])
-    third = assistant.ask("VS2 clarity or better, with an Ideal cut.", conversation=conversation)
+    third = assistant.ask(
+        "VS2 clarity or better, with an Ideal cut.",
+        conversation=conversation[-2:],
+        state=second["conversation_state"],
+    )
     if third["status"] != "answered" or third["matches"].empty:
         raise AssertionError("CI: completed preferences did not produce dataset matches.")
     if (third["matches"]["price"] > 6600).any() or (third["matches"]["cut"] != "Ideal").any():

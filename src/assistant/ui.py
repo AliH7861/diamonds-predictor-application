@@ -80,6 +80,11 @@ def _title_from_messages(messages: list[dict]) -> str:
     return first.strip()[:38] + ("..." if len(first.strip()) > 38 else "")
 
 
+def _safe_markdown(text: str) -> str:
+    """Keep currency symbols from being interpreted as Markdown equations."""
+    return str(text).replace("$", r"\$")
+
+
 def _initialize_sessions(st) -> None:
     """Create conversation storage and migrate the earlier single-chat state."""
     if "chat_sessions" in st.session_state:
@@ -87,7 +92,11 @@ def _initialize_sessions(st) -> None:
     existing = list(st.session_state.get("messages", []))
     session_id = "chat-initial"
     st.session_state["chat_sessions"] = {
-        session_id: {"title": _title_from_messages(existing), "messages": existing}
+        session_id: {
+            "title": _title_from_messages(existing),
+            "messages": existing,
+            "state": {},
+        }
     }
     st.session_state["active_chat_id"] = session_id
 
@@ -98,6 +107,7 @@ def _create_session(st) -> None:
     st.session_state["chat_sessions"][session_id] = {
         "title": "New diamond search",
         "messages": [],
+        "state": {},
     }
     st.session_state["active_chat_id"] = session_id
 
@@ -162,6 +172,8 @@ def _describe_matches(frame: pd.DataFrame) -> list[str]:
             details.append(f"{float(row['similarity_score']) * 100:.0f}% similarity to the reference")
         if pd.notna(row.get("model_price")):
             details.append(f"ANN price estimate ${float(row['model_price']):,.0f}")
+        if pd.notna(row.get("buyer_interpretation")):
+            details.append(f"buyer segment: {row['buyer_interpretation']}")
         if details:
             sentence += " " + "; ".join(details).capitalize() + "."
         descriptions.append(sentence)
@@ -176,7 +188,7 @@ def _render_message_result(st, result: dict, developer_mode: bool, heading: bool
     if not recommendations.empty:
         if heading:
             st.subheader("Closest dataset matches")
-        st.markdown("\n\n".join(_describe_matches(recommendations)))
+        st.markdown(_safe_markdown("\n\n".join(_describe_matches(recommendations))))
     if developer_mode:
         _render_trace(st, result, expanded=heading)
 
@@ -231,6 +243,7 @@ def render_app(st, assistant_factory) -> None:
 
     active_id = st.session_state["active_chat_id"]
     active_session = st.session_state["chat_sessions"][active_id]
+    active_session.setdefault("state", {})
     messages = active_session["messages"]
 
     with workspace_column:
@@ -246,7 +259,7 @@ def render_app(st, assistant_factory) -> None:
             )
         for message in messages:
             with st.chat_message(message["role"]):
-                st.markdown(message["content"])
+                st.markdown(_safe_markdown(message["content"]))
                 if message["role"] == "assistant" and message.get("result"):
                     _render_message_result(st, message["result"], developer_mode)
 
@@ -256,7 +269,7 @@ def render_app(st, assistant_factory) -> None:
         messages.append({"role": "user", "content": question})
         active_session["title"] = _title_from_messages(messages)
         with st.chat_message("user"):
-            st.markdown(question)
+            st.markdown(_safe_markdown(question))
         with st.chat_message("assistant"):
             with st.spinner("Searching dataset rows, model evidence, and diamond knowledge..."):
                 try:
@@ -265,16 +278,18 @@ def render_app(st, assistant_factory) -> None:
 
                     def show_token(token: str) -> None:
                         streamed_text.append(token)
-                        response.markdown("".join(streamed_text) + " ▌")
+                        response.markdown(_safe_markdown("".join(streamed_text)) + " ▌")
 
                     result = assistant.ask(
                         question,
-                        conversation=messages[:-1],
+                        conversation=messages[-3:-1],
                         on_token=show_token,
+                        state=active_session["state"],
                     )
                 except Exception as error:
                     st.error(f"The assistant could not answer: {error}")
                     return
-            response.markdown(result["answer"])
+            response.markdown(_safe_markdown(result["answer"]))
             _render_message_result(st, result, developer_mode, heading=True)
+        active_session["state"] = result.get("conversation_state", active_session["state"])
         messages.append({"role": "assistant", "content": result["answer"], "result": result})

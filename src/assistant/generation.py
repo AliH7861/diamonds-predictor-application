@@ -52,9 +52,8 @@ class OllamaClient:
             "stream": on_token is not None,
             "think": False,
             "keep_alive": "30m",
-            # A concise recommendation needs far fewer than 500 generated tokens
-            # and completes much faster on the project's CPU-only target machine.
-            "options": {"temperature": 0, "num_predict": 220},
+            # Streaming keeps longer answers readable while they are generated.
+            "options": {"temperature": 0, "num_predict": 400},
             "messages": [
                 {"role": "system", "content": system}, {"role": "user", "content": user}
             ],

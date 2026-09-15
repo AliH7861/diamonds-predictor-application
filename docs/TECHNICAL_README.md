@@ -120,7 +120,7 @@ Every prediction path applies `expm1` before returning dollar values.
 | `similarity_search.py` | Scaled/encoded structured neighbours |
 | `vector_store.py` | Separate Chroma knowledge and memory collections |
 | `retrieval.py` | Semantic search and optional focused second pass |
-| `model_evidence.py` | Load primary ANNs once and infer |
+| `model_evidence.py` | Load classification, regression, and clustering artifacts once and infer |
 | `memory.py` | Retrieve/save explicit preferences |
 | `prompt_builder.py` | Bound and assemble compact evidence |
 | `generation.py` | Ollama embeddings, structured output, and response |
@@ -136,7 +136,13 @@ Every prediction path applies `expm1` before returning dollar values.
 
 ### One-process local mode
 
-With `DIAMOND_ASSISTANT_API_URL` unset, Streamlit loads the dataset, vector index, models, and Ollama client in its own process.
+With `DIAMOND_ASSISTANT_API_URL` unset, Streamlit loads the dataset, persistent vector index,
+classification model, regression model, clustering model, embedding model, and Ollama client once
+in its cached process. Qwen is warmed before the chat becomes ready.
+
+Each conversation stores a compact filter state such as budget, carat range, cut, color, clarity,
+and priorities. Requests send that state plus only the latest exchange. Exact count questions route
+to Pandas and skip vector retrieval and generation.
 
 ```powershell
 ollama serve

@@ -58,7 +58,7 @@ class FakeStreamlit:
 
 
 class FakeAssistant:
-    def ask(self, question, conversation=None, on_token=None):
+    def ask(self, question, conversation=None, on_token=None, state=None):
         if on_token:
             on_token("A tested ")
             on_token("answer.")
@@ -73,6 +73,7 @@ class FakeAssistant:
                 "query": "cut", "document": "Cut affects sparkle.",
             }],
             "retrieved_memory": [], "saved_memory": None, "evidence": {}, "trace": [],
+            "conversation_state": {"max_price": 6000},
         }
 
 
@@ -83,6 +84,10 @@ class AssistantUITests(unittest.TestCase):
         active_id = st.session_state["active_chat_id"]
         messages = st.session_state["chat_sessions"][active_id]["messages"]
         self.assertEqual([item["role"] for item in messages], ["user", "assistant"])
+        self.assertEqual(
+            st.session_state["chat_sessions"][active_id]["state"]["max_price"],
+            6000,
+        )
         self.assertIn(("markdown", "A tested answer."), st.events)
         self.assertFalse(any(event[0] == "dataframe" for event in st.events))
         self.assertIn(("subheader", "Closest dataset matches"), st.events)

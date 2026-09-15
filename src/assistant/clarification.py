@@ -5,9 +5,13 @@ import re
 from .schemas import DiamondQueryPlan
 
 
-BUYING_MARKERS = ("i want", "find", "recommend", "looking for", "budget", "buy")
+BUYING_MARKERS = (
+    "i want", "find", "recommend", "looking for", "budget", "buy", "give me",
+    "good diamond", "best value", "how many",
+)
 CUT_GRADES = ("Fair", "Good", "Very Good", "Premium", "Ideal")
 CLARITY_GRADES = ("I1", "SI2", "SI1", "VS2", "VS1", "VVS2", "VVS1", "IF")
+AMOUNT_PATTERN = r"\d[\d,]*(?:\.\d+)?(?:\s*k)?"
 
 
 def _last_match(pattern: str, text: str) -> str | None:
@@ -15,38 +19,94 @@ def _last_match(pattern: str, text: str) -> str | None:
     return matches[-1] if matches else None
 
 
-def build_buying_plan(question: str, conversation_text: str) -> DiamondQueryPlan | None:
+def normalize_user_text(text: str) -> str:
+    """Repair a small set of frequent buying-query spelling mistakes."""
+    replacements = {
+        r"\b(?:diamnd|dimond)\b": "diamond",
+        r"\b(?:carrat|carret|carrot)\b": "carat",
+        r"\b(?:claraty|clarty|clrty)\b": "clarity",
+        r"\b(?:ideel|idel)\b": "ideal",
+        r"\bcoler\b": "color",
+        r"\bless then\b": "less than",
+    }
+    normalized = text
+    for pattern, replacement in replacements.items():
+        normalized = re.sub(pattern, replacement, normalized, flags=re.IGNORECASE)
+    return normalized
+
+
+def _amount(value: str) -> float:
+    """Convert values such as ``3,000`` and ``4k`` to dollars."""
+    cleaned = value.casefold().replace(",", "").replace(" ", "")
+    multiplier = 1000 if cleaned.endswith("k") else 1
+    if multiplier == 1000:
+        cleaned = cleaned[:-1]
+    return float(cleaned) * multiplier
+
+
+def _last_budget(text: str) -> float | None:
+    """Find the latest clearly price-like amount without mistaking carats for dollars."""
+    patterns = (
+        rf"\$\s*(?P<amount>{AMOUNT_PATTERN})",
+        rf"(?P<amount>{AMOUNT_PATTERN})\s*\$",
+        rf"\b(?:maximum\s+)?budget(?:\s+(?:is|of|for))?\s*\$?\s*(?P<amount>{AMOUNT_PATTERN})",
+        rf"\b(?:under|below|less\s+than|no\s+more\s+than|up\s+to|max(?:imum)?)\s*\$?\s*(?P<amount>{AMOUNT_PATTERN})",
+        r"\b(?:like|around|about)\s+\$?\s*(?P<amount>\d+(?:\.\d+)?\s*k)\b",
+    )
+    candidates = []
+    for pattern in patterns:
+        for match in re.finditer(pattern, text, flags=re.IGNORECASE):
+            value = _amount(match.group("amount"))
+            if value >= 100:
+                candidates.append((match.start(), value))
+    return max(candidates, default=(0, None), key=lambda item: item[0])[1]
+
+
+def _last_choice(text: str, choices: tuple[str, ...]) -> str | None:
+    """Return the most recently stated category, preferring longer names."""
+    matches = []
+    for choice in sorted(choices, key=len, reverse=True):
+        for match in re.finditer(rf"\b{re.escape(choice)}\b", text, flags=re.IGNORECASE):
+            matches.append((match.start(), choice))
+    return max(matches, default=(0, None), key=lambda item: item[0])[1]
+
+
+def build_buying_plan(
+    question: str,
+    conversation_text: str,
+    require_recommendation_details: bool = True,
+) -> DiamondQueryPlan | None:
     """Return a verified buying plan, or None when the user is asking a factual question."""
-    transcript = f"{conversation_text}\n{question}".strip()
+    normalized_question = normalize_user_text(question)
+    transcript = normalize_user_text(f"{conversation_text}\n{question}".strip())
     if not any(marker in transcript.casefold() for marker in BUYING_MARKERS):
         return None
 
     # Accept the ways people commonly type a budget: "$4,000", "4000$", or
     # "budget 4000". A number at the start of a short follow-up is also a
     # budget when the assistant just asked for one.
-    money_text = _last_match(
-        r"(?:\$\s*([\d,]+(?:\.\d+)?)|([\d,]+(?:\.\d+)?)\s*\$)", transcript
-    )
-    if isinstance(money_text, tuple):
-        money_text = next((value for value in money_text if value), None)
-    budget_text = _last_match(
-        r"\b(?:maximum\s+)?budget(?:\s+(?:is|of|for))?\s*\$?\s*([\d,]+(?:\.\d+)?)",
-        transcript,
-    )
-    if budget_text:
-        money_text = budget_text
+    budget = _last_budget(transcript)
     if re.search(r"maximum budget", conversation_text, flags=re.IGNORECASE):
-        follow_up_budget = re.match(r"\s*\$?\s*([\d,]{3,}(?:\.\d+)?)\b", question)
+        follow_up_budget = re.match(rf"\s*\$?\s*({AMOUNT_PATTERN})\b", normalized_question)
         if follow_up_budget:
-            money_text = follow_up_budget.group(1)
-    budget = float(money_text.replace(",", "")) if money_text else None
+            possible_budget = _amount(follow_up_budget.group(1))
+            if possible_budget >= 100:
+                budget = possible_budget
 
-    # "Carrot" is a frequent speech-to-text or typing mistake for "carat".
-    carat_text = _last_match(
-        r"\b(\d+(?:\.\d+)?)\s*(?:carats?|carrots?|ct)\b", transcript
+    carat_range = re.findall(
+        r"\bbetween\s+(\d+(?:\.\d+)?)\s+and\s+(\d+(?:\.\d+)?)\s*(?:carats?|ct)\b",
+        transcript,
+        flags=re.IGNORECASE,
     )
-    carat = float(carat_text) if carat_text else None
     carat_tolerance = 0.15
+    if carat_range:
+        low, high = map(float, carat_range[-1])
+        low, high = sorted((low, high))
+        carat = round((low + high) / 2, 4)
+        carat_tolerance = round((high - low) / 2, 4)
+    else:
+        carat_text = _last_match(r"\b(\d+(?:\.\d+)?)\s*(?:carats?|ct)\b", transcript)
+        carat = float(carat_text) if carat_text else None
     if carat is None:
         lowered = transcript.casefold()
         if re.search(r"\bmedium(?:-sized|\s+size(?:d)?)?\b", lowered):
@@ -62,14 +122,10 @@ def build_buying_plan(question: str, conversation_text: str) -> DiamondQueryPlan
         )
         return float(value) if value else None
 
-    cut = None
-    for grade in sorted(CUT_GRADES, key=len, reverse=True):
-        if re.search(rf"\b{re.escape(grade)}\b", transcript, flags=re.IGNORECASE):
-            cut = grade
-    clarity = None
-    for grade in CLARITY_GRADES:
-        if re.search(rf"\b{grade}\b", transcript, flags=re.IGNORECASE):
-            clarity = grade
+    cut = _last_choice(transcript, CUT_GRADES)
+    clarity = _last_choice(transcript, CLARITY_GRADES)
+    if clarity is None:
+        clarity = _last_choice(transcript, ("VVS", "VS", "SI"))
     lowered = transcript.casefold()
     if clarity is None and re.search(r"\b(?:high|excellent|very good)\s+clarity\b", lowered):
         clarity = "VVS"
@@ -80,6 +136,28 @@ def build_buying_plan(question: str, conversation_text: str) -> DiamondQueryPlan
         clarity = "VS"
     color = _last_match(r"\bcolor(?:\s+grade)?\s+([D-J])\b", transcript)
 
+    no_clarity_preference = bool(re.search(
+        r"\b(?:don['’]?t\s+care(?:\s+that\s+much)?\s+about|remove|forget)\s+(?:the\s+)?clarity",
+        normalized_question,
+        flags=re.IGNORECASE,
+    ))
+    no_cut_preference = bool(re.search(
+        r"\b(?:don['’]?t\s+care(?:\s+that\s+much)?\s+about|remove|forget)\s+(?:the\s+)?cut",
+        normalized_question,
+        flags=re.IGNORECASE,
+    ))
+    no_color_preference = bool(re.search(
+        r"\b(?:don['’]?t\s+care(?:\s+that\s+much)?\s+about|remove|forget)\s+(?:the\s+)?color",
+        normalized_question,
+        flags=re.IGNORECASE,
+    ))
+    if no_clarity_preference:
+        clarity = None
+    if no_cut_preference:
+        cut = None
+    if no_color_preference:
+        color = None
+
     priorities = []
     for priority in ("clarity", "cut", "size", "color", "value"):
         if priority in lowered and any(
@@ -88,16 +166,23 @@ def build_buying_plan(question: str, conversation_text: str) -> DiamondQueryPlan
             priorities.append(priority)
     if "balance" in lowered and "price" in lowered and "value" not in priorities:
         priorities.append("value")
+    if no_clarity_preference and "clarity" in priorities:
+        priorities.remove("clarity")
+    if no_cut_preference and "cut" in priorities:
+        priorities.remove("cut")
+    if no_color_preference and "color" in priorities:
+        priorities.remove("color")
 
     missing = []
-    if budget is None:
-        missing.append("your maximum budget")
-    if carat is None:
-        missing.append("the carat size you are targeting")
-    if "clarity" in priorities and clarity is None:
-        missing.append("the clarity grade or range you would accept")
-    elif cut is None and clarity is None:
-        missing.append("a preferred cut or clarity grade")
+    if require_recommendation_details:
+        if budget is None:
+            missing.append("your maximum budget")
+        if carat is None:
+            missing.append("the carat size you are targeting")
+        if "clarity" in priorities and clarity is None:
+            missing.append("the clarity grade or range you would accept")
+        elif cut is None and clarity is None and not (no_clarity_preference or no_cut_preference):
+            missing.append("a preferred cut or clarity grade")
 
     clarification = None
     if missing:

@@ -60,8 +60,13 @@ class AssistantRequestHandler(BaseHTTPRequestHandler):
             request = json.loads(self.rfile.read(length).decode("utf-8"))
             question = request.get("question", "")
             conversation = decode_conversation(request.get("conversation", []))
+            state = request.get("state") or {}
+            if not isinstance(state, dict):
+                raise ValueError("Conversation state must be a JSON object.")
             if self.path == "/chat":
-                result = self.server.assistant.ask(question, conversation=conversation)
+                result = self.server.assistant.ask(
+                    question, conversation=conversation, state=state
+                )
                 self._write_json(200, encode_result(result))
                 return
 
@@ -74,6 +79,7 @@ class AssistantRequestHandler(BaseHTTPRequestHandler):
                 question,
                 conversation=conversation,
                 on_token=lambda token: self._write_stream_event("token", token),
+                state=state,
             )
             self._write_stream_event("result", encode_result(result))
         except (json.JSONDecodeError, TypeError, ValueError) as error:

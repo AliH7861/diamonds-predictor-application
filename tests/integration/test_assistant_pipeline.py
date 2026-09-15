@@ -7,6 +7,7 @@ from tests.helpers import make_diamonds
 class FakeLLM:
     def __init__(self):
         self.structured_calls = 0
+        self.complete_calls = 0
 
     def structured(self, system, user):
         self.structured_calls += 1
@@ -17,6 +18,7 @@ class FakeLLM:
         return {"should_save": True, "memory_text": "User prioritizes sparkle."}
 
     def complete(self, system, user):
+        self.complete_calls += 1
         self.final_context = user
         return "Choose the strongest cut within the budget."
 
@@ -76,6 +78,67 @@ class AssistantPipelineTests(unittest.TestCase):
         self.assertEqual(result["route"]["intent"], "price_prediction")
         self.assertEqual(result["evidence"]["model_evidence"]["predicted_price"], 6020.0)
         self.assertTrue(result["matches"].empty)
+
+    def test_count_question_uses_pandas_without_llm_generation(self):
+        llm = FakeLLM()
+        diamonds = make_diamonds(rows=80)
+        assistant = DiamondAssistant(llm, DiamondCatalog(diamonds), FakeStores())
+
+        result = assistant.ask("How many VS diamonds are under $10,000?")
+
+        expected = len(
+            diamonds[
+                (diamonds["price"] <= 10000)
+                & diamonds["clarity"].str.startswith("VS")
+            ]
+        )
+        self.assertEqual(result["route"]["intent"], "dataset_count")
+        self.assertEqual(result["evidence"]["matching_count"], expected)
+        self.assertEqual(llm.complete_calls, 0)
+
+    def test_compact_state_completes_follow_up_without_full_history(self):
+        assistant = DiamondAssistant(
+            FakeLLM(), DiamondCatalog(make_diamonds(rows=80)), FakeStores()
+        )
+        first = assistant.ask(
+            "I want a diamond below 3000 between 0.35 and 0.45 carrot."
+        )
+        self.assertEqual(first["status"], "needs_clarification")
+
+        second = assistant.ask(
+            "I don't care about clarity grade.",
+            state=first["conversation_state"],
+        )
+
+        self.assertEqual(second["status"], "answered")
+        self.assertLessEqual(second["plan"]["max_price"], 3000)
+        self.assertAlmostEqual(second["plan"]["target_carat"], 0.4)
+
+    def test_missing_dataset_field_is_rejected_without_generation(self):
+        llm = FakeLLM()
+        assistant = DiamondAssistant(
+            llm, DiamondCatalog(make_diamonds(rows=20)), FakeStores()
+        )
+
+        result = assistant.ask("What country was this diamond mined in?")
+
+        self.assertEqual(result["route"]["intent"], "unsupported_dataset_field")
+        self.assertIn("does not contain", result["answer"])
+        self.assertEqual(llm.complete_calls, 0)
+
+    def test_impossible_constraints_do_not_hallucinate_matches(self):
+        llm = FakeLLM()
+        assistant = DiamondAssistant(
+            llm, DiamondCatalog(make_diamonds(rows=20)), FakeStores()
+        )
+
+        result = assistant.ask(
+            "I want a 20 carat Ideal cut IF clarity diamond under $100."
+        )
+
+        self.assertTrue(result["matches"].empty)
+        self.assertIn("No diamonds", result["answer"])
+        self.assertEqual(llm.complete_calls, 0)
 
 
 if __name__ == "__main__":

@@ -33,3 +33,40 @@ def test_buying_conversation_combines_natural_follow_ups_without_looping():
     assert final.max_price == 2500
     assert final.target_carat == 0.35
     assert final.clarity == "VVS"
+
+
+def test_budget_range_and_no_clarity_preference_complete_the_plan():
+    first = "So I want a diamond for below 3000, between 0.35 and 0.45 carrot."
+    initial = build_buying_plan(first, "No earlier conversation.")
+
+    assert initial is not None
+    assert initial.max_price == 3000
+    assert initial.target_carat == 0.40
+    assert initial.carat_tolerance == 0.05
+    assert initial.needs_clarification
+
+    conversation = (
+        f"user: {first}\n"
+        f"assistant: {initial.clarifying_question}"
+    )
+    final = build_buying_plan("I don't care about clarity grade.", conversation)
+
+    assert final is not None
+    assert final.max_price == 3000
+    assert final.target_carat == 0.40
+    assert final.clarity is None
+    assert not final.needs_clarification
+
+
+def test_common_typos_and_k_budget_are_normalized():
+    plan = build_buying_plan(
+        "whats a good diamnd for like 4k maybe 1 carret, ideel cut and VS clrty",
+        "No earlier conversation.",
+    )
+
+    assert plan is not None
+    assert plan.max_price == 4000
+    assert plan.target_carat == 1.0
+    assert plan.cut == "Ideal"
+    assert plan.clarity == "VS"
+    assert not plan.needs_clarification

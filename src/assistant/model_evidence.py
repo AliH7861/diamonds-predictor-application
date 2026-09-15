@@ -12,8 +12,10 @@ class ModelEvidenceProvider:
         root = Path(project_root)
         self.classification_dir = root / "models" / "classification"
         self.regression_dir = root / "models" / "regression"
+        self.clustering_path = root / "models" / "clustering" / "buyer_segmentation.joblib"
         self.classifier = None
         self.regressor = None
+        self.clusterer = None
         self.load_errors = []
 
         # Streamlit constructs this object once when the tab opens. Loading the
@@ -32,12 +34,20 @@ class ModelEvidenceProvider:
                 self.regressor = load_best_model(self.regression_dir)
             except Exception as error:
                 self.load_errors.append(f"Regression model unavailable: {error}")
+        if self.clustering_path.is_file():
+            try:
+                from src.clustering.prediction import load_segmentation_model
+
+                self.clusterer = load_segmentation_model(self.clustering_path)
+            except Exception as error:
+                self.load_errors.append(f"Clustering model unavailable: {error}")
 
     def status(self) -> dict:
         """Describe optional saved-model availability for the visible evidence trace."""
         return {
             "classification_loaded": self.classifier is not None,
             "regression_loaded": self.regressor is not None,
+            "clustering_loaded": self.clusterer is not None,
             "errors": self.load_errors,
         }
 
@@ -58,6 +68,12 @@ class ModelEvidenceProvider:
             classifier_records = result[bundle["metadata"]["required_inputs"]].to_dict("records")
             clarity = predict_diamonds(bundle, classifier_records)
             result["predicted_clarity_family"] = [row["clarity_family"] for row in clarity]
+        if records and self.clusterer is not None:
+            from src.clustering.prediction import assign_purchase_segment
+
+            segments = assign_purchase_segment(self.clusterer, result)
+            result["buyer_segment"] = segments["Cluster"].to_numpy()
+            result["buyer_interpretation"] = segments["Buyer_Interpretation"].to_numpy()
         return result
 
     def predict(self, intent: str, raw_inputs: dict) -> dict:

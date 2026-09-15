@@ -224,7 +224,9 @@ The assistant lets users ask ordinary questions instead of inspecting tables, no
 | Similar alternatives | Scaled numeric + encoded categorical distance |
 | Price estimate | Saved regression ANN |
 | Clarity estimate | Saved classification ANN |
+| Buyer segment | Saved K-Means clustering pipeline |
 | Project/domain explanation | Embeddings + Chroma RAG |
+| Current search preferences | Compact structured conversation state |
 | Durable preferences | Separate vector memory collection |
 | Natural response | Local Qwen through Ollama |
 
@@ -244,6 +246,8 @@ flowchart LR
 ```
 
 Deterministic tools perform calculations and filtering. Embeddings retrieve semantic knowledge. The LLM explains bounded evidence rather than memorizing 53,000 rows or inventing predictions.
+Exact count requests use Pandas and return directly without an embedding or LLM call. Each chat
+passes only its compact filters and latest exchange instead of repeatedly sending the full history.
 
 ### How Streamlit works
 

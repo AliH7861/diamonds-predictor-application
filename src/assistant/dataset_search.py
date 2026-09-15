@@ -29,7 +29,7 @@ class DiamondCatalog:
     def from_csv(cls, path: str | Path) -> "DiamondCatalog":
         return cls(pd.read_csv(path))
 
-    def search(self, plan: DiamondQueryPlan, limit: int = 5) -> pd.DataFrame:
+    def search(self, plan: DiamondQueryPlan, limit: int | None = 5) -> pd.DataFrame:
         """Apply the plan as Pandas filters and rank useful matches deterministically."""
         if not plan.search_dataset:
             return self.diamonds.head(0).copy()
@@ -62,4 +62,7 @@ class DiamondCatalog:
             ascending.append(True)
         sort_columns.append("price")
         ascending.append(True)
-        return matches.sort_values(sort_columns, ascending=ascending).drop(columns="_carat_distance", errors="ignore").head(limit).copy()
+        ranked = matches.sort_values(sort_columns, ascending=ascending).drop(
+            columns="_carat_distance", errors="ignore"
+        )
+        return ranked.head(limit).copy() if limit is not None else ranked.copy()

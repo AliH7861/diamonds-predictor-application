@@ -11,6 +11,7 @@ from .schemas import DiamondQueryPlan, EvidenceRoute
 VISIBLE_COLUMNS = [
     "price", "carat", "cut", "color", "clarity", "depth", "table", "x", "y", "z",
     "similarity_score", "model_price", "price_difference_pct", "predicted_clarity_family",
+    "buyer_segment", "buyer_interpretation",
 ]
 
 
