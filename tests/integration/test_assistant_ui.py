@@ -48,6 +48,9 @@ class FakeStreamlit:
         self.events.append(("button", label))
         return False
 
+    def empty(self):
+        return self
+
     def __getattr__(self, name):
         def record(*args, **kwargs):
             self.events.append((name, args[0] if args else kwargs))
@@ -55,7 +58,10 @@ class FakeStreamlit:
 
 
 class FakeAssistant:
-    def ask(self, question, conversation=None):
+    def ask(self, question, conversation=None, on_token=None):
+        if on_token:
+            on_token("A tested ")
+            on_token("answer.")
         return {
             "status": "answered", "answer": "A tested answer.",
             "matches": pd.DataFrame([{"price": 5000}]),

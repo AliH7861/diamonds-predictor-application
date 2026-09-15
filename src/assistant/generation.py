@@ -35,10 +35,21 @@ class OllamaClient:
         except OSError as error:
             raise RuntimeError("Ollama is unavailable. Start it with 'ollama serve'.") from error
 
-    def complete(self, system: str, user: str) -> str:
-        result = self._post("/api/chat", {
+    def warmup(self) -> None:
+        """Load the chat model into memory before the first user question."""
+        self._post("/api/generate", {
             "model": self.chat_model,
+            "prompt": "",
             "stream": False,
+            "keep_alive": "30m",
+            "options": {"num_predict": 1},
+        })
+
+    def complete(self, system: str, user: str, on_token=None) -> str:
+        """Generate an answer, optionally forwarding each streamed text chunk."""
+        payload = {
+            "model": self.chat_model,
+            "stream": on_token is not None,
             "think": False,
             "keep_alive": "30m",
             # A concise recommendation needs far fewer than 500 generated tokens
@@ -47,8 +58,33 @@ class OllamaClient:
             "messages": [
                 {"role": "system", "content": system}, {"role": "user", "content": user}
             ],
-        })
-        return result["message"]["content"].strip()
+        }
+        if on_token is None:
+            result = self._post("/api/chat", payload)
+            return result["message"]["content"].strip()
+
+        request = Request(
+            self.base_url + "/api/chat",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+        )
+        chunks = []
+        try:
+            with urlopen(request, timeout=300) as response:
+                for line in response:
+                    event = json.loads(line)
+                    text = event.get("message", {}).get("content", "")
+                    if text:
+                        chunks.append(text)
+                        on_token(text)
+        except (TimeoutError, socket.timeout) as error:
+            raise RuntimeError(
+                "Ollama took too long to answer. The local model may still be loading; "
+                "retry once it is warm."
+            ) from error
+        except (URLError, OSError) as error:
+            raise RuntimeError("Ollama is unavailable. Start it with 'ollama serve'.") from error
+        return "".join(chunks).strip()
 
     def structured(self, system: str, user: str) -> dict:
         if "search plan" in system:

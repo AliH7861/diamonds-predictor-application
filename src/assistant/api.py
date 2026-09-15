@@ -26,6 +26,12 @@ class AssistantRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(payload)
 
+    def _write_stream_event(self, event_type: str, value) -> None:
+        """Write one newline-delimited JSON event and make it visible immediately."""
+        payload = json.dumps({"type": event_type, "value": value}, allow_nan=False)
+        self.wfile.write((payload + "\n").encode("utf-8"))
+        self.wfile.flush()
+
     def _authorized(self) -> bool:
         expected = getattr(self.server, "api_token", None)
         if not expected:
@@ -40,7 +46,8 @@ class AssistantRequestHandler(BaseHTTPRequestHandler):
         self._write_json(200, {"status": "ok", "service": "diamond-assistant"})
 
     def do_POST(self) -> None:  # noqa: N802
-        if self.path != "/chat":
+        stream_started = False
+        if self.path not in {"/chat", "/chat/stream"}:
             self._write_json(404, {"error": "Not found"})
             return
         if not self._authorized():
@@ -53,12 +60,32 @@ class AssistantRequestHandler(BaseHTTPRequestHandler):
             request = json.loads(self.rfile.read(length).decode("utf-8"))
             question = request.get("question", "")
             conversation = decode_conversation(request.get("conversation", []))
-            result = self.server.assistant.ask(question, conversation=conversation)
-            self._write_json(200, encode_result(result))
+            if self.path == "/chat":
+                result = self.server.assistant.ask(question, conversation=conversation)
+                self._write_json(200, encode_result(result))
+                return
+
+            self.send_response(200)
+            self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            stream_started = True
+            result = self.server.assistant.ask(
+                question,
+                conversation=conversation,
+                on_token=lambda token: self._write_stream_event("token", token),
+            )
+            self._write_stream_event("result", encode_result(result))
         except (json.JSONDecodeError, TypeError, ValueError) as error:
             self._write_json(400, {"error": str(error)})
         except Exception as error:
-            self._write_json(500, {"error": str(error)})
+            if stream_started:
+                try:
+                    self._write_stream_event("error", str(error))
+                except OSError:
+                    pass
+            else:
+                self._write_json(500, {"error": str(error)})
 
     def log_message(self, format_string: str, *args) -> None:
         """Keep concise standard HTTP logs in the terminal."""

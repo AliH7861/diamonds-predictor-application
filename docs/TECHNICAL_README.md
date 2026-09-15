@@ -160,7 +160,10 @@ $env:DIAMOND_ASSISTANT_API_TOKEN="choose-a-long-random-token"
 python -m streamlit run app.py
 ```
 
-The frontend sends natural-language turns to `POST /chat`. The local API retains the dataset, saved models, vector data, and Ollama access.
+The frontend sends natural-language turns to `POST /chat/stream`. That endpoint returns
+newline-delimited token events followed by the final structured result. The local API retains
+the dataset, saved models, vector data, and Ollama access. `POST /chat` remains available for
+clients that need one complete JSON response.
 
 ### Hosted frontend, local backend
 
@@ -185,6 +188,7 @@ python -m src.assistant.api --port 8770
 
 - `GET /health`
 - `POST /chat`
+- `POST /chat/stream`
 
 ```json
 {

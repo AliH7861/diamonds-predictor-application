@@ -87,7 +87,12 @@ class DiamondAssistant:
             "trace": trace,
         }
 
-    def ask(self, question: str, conversation: list[dict] | None = None) -> dict:
+    def ask(
+        self,
+        question: str,
+        conversation: list[dict] | None = None,
+        on_token=None,
+    ) -> dict:
         """Route, clarify, retrieve only needed evidence, compact it, and answer."""
         if not isinstance(question, str) or not question.strip():
             raise ValueError("Question must contain text.")
@@ -181,12 +186,15 @@ class DiamondAssistant:
             route, plan, matches, similar, retrieval["details"], memory, model_evidence
         )
         prompt = build_generation_prompt(question, conversation_text, evidence)
-        answer = self.llm.complete(
+        system_prompt = (
             "Answer as a concise diamond adviser. Use only the supplied compact evidence. "
             "Explain relevant trade-offs, name supplied knowledge sources when useful, and "
-            "label saved-model outputs as estimates.",
-            prompt,
+            "label saved-model outputs as estimates."
         )
+        if on_token is None:
+            answer = self.llm.complete(system_prompt, prompt)
+        else:
+            answer = self.llm.complete(system_prompt, prompt, on_token=on_token)
         saved_memory = self.memory.save_explicit(f"{conversation_text}\n{question}")
         model_status = (
             self.enricher.status()

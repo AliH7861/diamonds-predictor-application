@@ -9,7 +9,10 @@ from src.assistant.client import AssistantAPIClient
 
 
 class FakeAssistant:
-    def ask(self, question, conversation=None):
+    def ask(self, question, conversation=None, on_token=None):
+        if on_token:
+            on_token("Grounded ")
+            on_token("answer")
         return {
             "status": "answered",
             "answer": f"Grounded answer for: {question}",
@@ -40,6 +43,12 @@ def test_http_frontend_backend_round_trip():
         assert result["status"] == "answered"
         assert result["matches"].iloc[0]["price"] == 5900
         assert result["similar_matches"].empty
+
+        chunks = []
+        streamed = client.ask("Stream a recommendation.", on_token=chunks.append)
+        assert "".join(chunks) == "Grounded answer"
+        assert streamed["status"] == "answered"
+        assert streamed["matches"].iloc[0]["price"] == 5900
     finally:
         server.shutdown()
         server.server_close()

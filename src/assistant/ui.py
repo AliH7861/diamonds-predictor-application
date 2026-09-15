@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import pandas as pd
 
-from .ui_content import APP_DESCRIPTION, APP_TITLE, INPUT_PLACEHOLDER, STARTER_QUESTIONS
+from .ui_content import APP_DESCRIPTION, APP_TITLE, INPUT_PLACEHOLDER
 
 
 PAGE_STYLES = """
@@ -47,13 +47,13 @@ PAGE_STYLES = """
         line-height: 1.08; margin: .35rem 0 .65rem; }
     .assistant-description { color: var(--muted); font-size: .98rem; line-height: 1.65;
         max-width: 720px; }
-    .welcome-panel { background: linear-gradient(145deg, #f7fbf8, #e8f3ec);
-        border: 1px solid #d2e5d8; border-radius: 14px; margin: 1.3rem 0 1rem; padding: 2rem; }
+    .welcome-panel { align-items: center; background: linear-gradient(145deg, #f7fbf8, #e8f3ec);
+        border: 1px solid #d2e5d8; border-radius: 14px; display: flex;
+        flex-direction: column; justify-content: center; margin: 1.3rem 0 1rem;
+        min-height: 430px; padding: 2rem; text-align: center; }
     .welcome-title { color: var(--forest); font-family: Georgia, serif; font-size: 1.45rem;
         margin-bottom: .4rem; }
-    .welcome-copy { color: var(--muted); font-size: .9rem; line-height: 1.55; }
-    .starter-card { background: #fbfdfb; border: 1px solid var(--line); border-radius: 10px;
-        color: #365448; font-size: .84rem; margin: .45rem 0; padding: .75rem .9rem; }
+    .welcome-copy { color: var(--muted); font-size: .9rem; line-height: 1.55; max-width: 560px; }
     .stButton > button { background: #f8fbf9; border: 1px solid var(--line); border-radius: 9px;
         color: var(--forest); min-height: 2.55rem; text-align: left; }
     .stButton > button:hover { border-color: var(--leaf); color: var(--leaf); }
@@ -218,9 +218,6 @@ def render_app(st, assistant_factory) -> None:
                 'The assistant searches real dataset examples and grounds its explanation in retrieved diamond knowledge.</div></div>',
                 unsafe_allow_html=True,
             )
-            for starter in STARTER_QUESTIONS:
-                st.markdown(f'<div class="starter-card">{starter}</div>', unsafe_allow_html=True)
-
         for message in messages:
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
@@ -237,10 +234,21 @@ def render_app(st, assistant_factory) -> None:
         with st.chat_message("assistant"):
             with st.spinner("Searching dataset rows, model evidence, and diamond knowledge..."):
                 try:
-                    result = assistant.ask(question, conversation=messages[:-1])
+                    response = st.empty()
+                    streamed_text = []
+
+                    def show_token(token: str) -> None:
+                        streamed_text.append(token)
+                        response.markdown("".join(streamed_text) + " ▌")
+
+                    result = assistant.ask(
+                        question,
+                        conversation=messages[:-1],
+                        on_token=show_token,
+                    )
                 except Exception as error:
                     st.error(f"The assistant could not answer: {error}")
                     return
-            st.markdown(result["answer"])
+            response.markdown(result["answer"])
             _render_message_result(st, result, developer_mode, heading=True)
         messages.append({"role": "assistant", "content": result["answer"], "result": result})

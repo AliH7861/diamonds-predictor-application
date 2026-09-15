@@ -253,12 +253,14 @@ Deterministic tools perform calculations and filtering. Embeddings retrieve sema
 Browser → Streamlit → local data/models/Chroma/Ollama
 ```
 
-Run `python -m streamlit run app.py`. Everything stays on the computer.
+Run `python -m streamlit run app.py`. Everything stays on the computer. The cached assistant
+loads Qwen before the chat becomes ready, then streams generated text into the active message.
+Dataset rows and developer evidence appear when generation finishes.
 
 **Separated frontend and local backend:**
 
 ```text
-Streamlit → HTTP /chat → local assistant API → data/models/Chroma/Ollama
+Streamlit → HTTP /chat/stream → local assistant API → data/models/Chroma/Ollama
 ```
 
 Terminal 1:
