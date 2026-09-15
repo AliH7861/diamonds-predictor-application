@@ -21,10 +21,40 @@ def build_buying_plan(question: str, conversation_text: str) -> DiamondQueryPlan
     if not any(marker in transcript.casefold() for marker in BUYING_MARKERS):
         return None
 
-    money_text = _last_match(r"\$\s*([\d,]+(?:\.\d+)?)", transcript)
+    # Accept the ways people commonly type a budget: "$4,000", "4000$", or
+    # "budget 4000". A number at the start of a short follow-up is also a
+    # budget when the assistant just asked for one.
+    money_text = _last_match(
+        r"(?:\$\s*([\d,]+(?:\.\d+)?)|([\d,]+(?:\.\d+)?)\s*\$)", transcript
+    )
+    if isinstance(money_text, tuple):
+        money_text = next((value for value in money_text if value), None)
+    budget_text = _last_match(
+        r"\b(?:maximum\s+)?budget(?:\s+(?:is|of|for))?\s*\$?\s*([\d,]+(?:\.\d+)?)",
+        transcript,
+    )
+    if budget_text:
+        money_text = budget_text
+    if re.search(r"maximum budget", conversation_text, flags=re.IGNORECASE):
+        follow_up_budget = re.match(r"\s*\$?\s*([\d,]{3,}(?:\.\d+)?)\b", question)
+        if follow_up_budget:
+            money_text = follow_up_budget.group(1)
     budget = float(money_text.replace(",", "")) if money_text else None
-    carat_text = _last_match(r"\b(\d+(?:\.\d+)?)\s*(?:carats?|ct)\b", transcript)
+
+    # "Carrot" is a frequent speech-to-text or typing mistake for "carat".
+    carat_text = _last_match(
+        r"\b(\d+(?:\.\d+)?)\s*(?:carats?|carrots?|ct)\b", transcript
+    )
     carat = float(carat_text) if carat_text else None
+    carat_tolerance = 0.15
+    if carat is None:
+        lowered = transcript.casefold()
+        if re.search(r"\bmedium(?:-sized|\s+size(?:d)?)?\b", lowered):
+            carat, carat_tolerance = 0.75, 0.25
+        elif re.search(r"\bsmall(?:-sized|\s+size(?:d)?)?\b", lowered):
+            carat, carat_tolerance = 0.40, 0.15
+        elif re.search(r"\blarge(?:-sized|\s+size(?:d)?)?\b", lowered):
+            carat, carat_tolerance = 1.25, 0.25
 
     def stated_number(label: str) -> float | None:
         value = _last_match(
@@ -40,13 +70,24 @@ def build_buying_plan(question: str, conversation_text: str) -> DiamondQueryPlan
     for grade in CLARITY_GRADES:
         if re.search(rf"\b{grade}\b", transcript, flags=re.IGNORECASE):
             clarity = grade
+    lowered = transcript.casefold()
+    if clarity is None and re.search(r"\b(?:high|excellent|very good)\s+clarity\b", lowered):
+        clarity = "VVS"
+    elif clarity is None and (
+        "balance between clarity and price" in lowered
+        or "balance of clarity and price" in lowered
+    ):
+        clarity = "VS"
     color = _last_match(r"\bcolor(?:\s+grade)?\s+([D-J])\b", transcript)
 
     priorities = []
-    lowered = transcript.casefold()
     for priority in ("clarity", "cut", "size", "color", "value"):
-        if priority in lowered and any(word in lowered for word in ("matter", "priorit", "prefer")):
+        if priority in lowered and any(
+            word in lowered for word in ("matter", "priorit", "prefer", "balance")
+        ):
             priorities.append(priority)
+    if "balance" in lowered and "price" in lowered and "value" not in priorities:
+        priorities.append("value")
 
     missing = []
     if budget is None:
@@ -81,7 +122,7 @@ def build_buying_plan(question: str, conversation_text: str) -> DiamondQueryPlan
         min_price=min_price,
         max_price=max_price,
         target_carat=carat,
-        carat_tolerance=0.15,
+        carat_tolerance=carat_tolerance,
         depth=stated_number("depth"),
         table=stated_number("table"),
         x=stated_number("x"),

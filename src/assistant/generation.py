@@ -1,6 +1,8 @@
 """Minimal local Ollama client for structured chat and embedding generation."""
 
 import json
+import socket
+from urllib.error import URLError
 from urllib.request import Request, urlopen
 
 
@@ -19,8 +21,17 @@ class OllamaClient:
             headers={"Content-Type": "application/json"},
         )
         try:
-            with urlopen(request, timeout=120) as response:
+            # CPU-only generation can take longer on the first request while the
+            # model is loaded. Keep the connection open long enough for that run.
+            with urlopen(request, timeout=300) as response:
                 return json.load(response)
+        except (TimeoutError, socket.timeout) as error:
+            raise RuntimeError(
+                "Ollama took too long to answer. The local model may still be loading; "
+                "retry once it is warm."
+            ) from error
+        except URLError as error:
+            raise RuntimeError("Ollama is unavailable. Start it with 'ollama serve'.") from error
         except OSError as error:
             raise RuntimeError("Ollama is unavailable. Start it with 'ollama serve'.") from error
 
@@ -30,7 +41,9 @@ class OllamaClient:
             "stream": False,
             "think": False,
             "keep_alive": "30m",
-            "options": {"temperature": 0, "num_predict": 500},
+            # A concise recommendation needs far fewer than 500 generated tokens
+            # and completes much faster on the project's CPU-only target machine.
+            "options": {"temperature": 0, "num_predict": 220},
             "messages": [
                 {"role": "system", "content": system}, {"role": "user", "content": user}
             ],
