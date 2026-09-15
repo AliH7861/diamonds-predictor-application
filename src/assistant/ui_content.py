@@ -8,6 +8,6 @@ APP_DESCRIPTION = (
 INPUT_PLACEHOLDER = "Describe your budget, preferred size, and what matters most..."
 STARTER_QUESTIONS = (
     "I have a $6,000 budget and clarity matters most. Help me narrow the options.",
-    "What is the practical difference between VS1 and VS2 clarity?",
+    "What is the practical difference between VS and VVS clarity?",
     "Which features have the strongest effect on predicted price?",
 )

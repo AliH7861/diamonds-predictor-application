@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pandas as pd
 
+from .clarity import clarity_family
 from .ui_content import APP_DESCRIPTION, APP_TITLE, INPUT_PLACEHOLDER
 
 
@@ -165,7 +166,7 @@ def _describe_matches(frame: pd.DataFrame) -> list[str]:
         if pd.notna(row.get("color")):
             traits.append(f"{row['color']} color")
         if pd.notna(row.get("clarity")):
-            traits.append(f"{row['clarity']} clarity")
+            traits.append(f"{clarity_family(row['clarity'])} clarity")
         sentence = f"{number}. **{price}** — " + (", ".join(traits) or "matching dataset diamond") + "."
         details = []
         if pd.notna(row.get("similarity_score")):

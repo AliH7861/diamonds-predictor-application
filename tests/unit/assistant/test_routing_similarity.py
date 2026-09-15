@@ -65,4 +65,4 @@ def test_llm_plan_rejects_invalid_categories_and_normalizes_ranges():
     assert (plan.min_price, plan.max_price) == (5000, 6000)
     assert plan.cut is None
     assert plan.color is None
-    assert plan.clarity == "VS2"
+    assert plan.clarity == "VS"

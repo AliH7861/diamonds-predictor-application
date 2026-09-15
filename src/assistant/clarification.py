@@ -2,6 +2,7 @@
 
 import re
 
+from .clarity import clarity_family
 from .schemas import DiamondQueryPlan
 
 
@@ -126,6 +127,8 @@ def build_buying_plan(
     clarity = _last_choice(transcript, CLARITY_GRADES)
     if clarity is None:
         clarity = _last_choice(transcript, ("VVS", "VS", "SI"))
+    if clarity is not None:
+        clarity = clarity_family(clarity)
     lowered = transcript.casefold()
     if clarity is None and re.search(r"\b(?:high|excellent|very good)\s+clarity\b", lowered):
         clarity = "VVS"

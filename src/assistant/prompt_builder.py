@@ -5,6 +5,7 @@ import json
 
 import pandas as pd
 
+from .clarity import clarity_family
 from .schemas import DiamondQueryPlan, EvidenceRoute
 
 
@@ -20,7 +21,10 @@ def compact_rows(frame: pd.DataFrame, limit: int = 5) -> list[dict]:
     if frame.empty:
         return []
     columns = [column for column in VISIBLE_COLUMNS if column in frame.columns]
-    return frame.loc[:, columns].head(limit).round(4).to_dict("records")
+    visible = frame.loc[:, columns].head(limit).round(4).copy()
+    if "clarity" in visible:
+        visible["clarity"] = visible["clarity"].map(clarity_family)
+    return visible.to_dict("records")
 
 
 def compact_knowledge(details: list[dict], limit: int = 4) -> list[dict]:

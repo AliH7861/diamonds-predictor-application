@@ -1,4 +1,13 @@
 from src.assistant.clarification import build_buying_plan
+from src.assistant.clarity import clarity_family
+
+
+def test_detailed_clarity_grades_collapse_to_project_families():
+    assert clarity_family("I1") == "I"
+    assert clarity_family("SI2") == "SI"
+    assert clarity_family("VS1") == "VS"
+    assert clarity_family("VVS2") == "VVS"
+    assert clarity_family("IF") == "IF"
 
 
 def test_buying_conversation_combines_natural_follow_ups_without_looping():

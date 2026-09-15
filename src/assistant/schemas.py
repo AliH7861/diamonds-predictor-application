@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass, field
 
+from .clarity import clarity_family
+
 
 @dataclass(frozen=True)
 class EvidenceRoute:
@@ -64,6 +66,8 @@ class DiamondQueryPlan:
             item = clean.get(key)
             if item is not None and str(item).casefold() not in choices:
                 clean[key] = None
+        if clean.get("clarity"):
+            clean["clarity"] = clarity_family(clean["clarity"])
         if clean.get("min_price") is not None and clean.get("max_price") is not None:
             if clean["min_price"] > clean["max_price"]:
                 clean["min_price"], clean["max_price"] = clean["max_price"], clean["min_price"]
