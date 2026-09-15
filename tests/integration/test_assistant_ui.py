@@ -84,7 +84,8 @@ class AssistantUITests(unittest.TestCase):
         messages = st.session_state["chat_sessions"][active_id]["messages"]
         self.assertEqual([item["role"] for item in messages], ["user", "assistant"])
         self.assertIn(("markdown", "A tested answer."), st.events)
-        self.assertTrue(any(event[0] == "dataframe" for event in st.events))
+        self.assertFalse(any(event[0] == "dataframe" for event in st.events))
+        self.assertIn(("subheader", "Closest dataset matches"), st.events)
         self.assertFalse(any(event[0] == "expander" for event in st.events))
 
     def test_developer_mode_renders_same_result_with_trace(self):

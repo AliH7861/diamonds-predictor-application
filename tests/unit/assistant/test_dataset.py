@@ -27,6 +27,11 @@ class AssistantDatasetTests(unittest.TestCase):
         self.assertTrue(result.empty)
         self.assertIn("price", result.columns)
 
+    def test_exported_csv_index_is_not_treated_as_a_feature(self):
+        diamonds = make_diamonds(rows=20).assign(**{"Unnamed: 0": range(20)})
+        catalog = DiamondCatalog(diamonds)
+        self.assertNotIn("Unnamed: 0", catalog.diamonds.columns)
+
     def test_knowledge_chunking_is_deterministic_and_overlapping(self):
         text = "First paragraph.\n\n" + "A" * 30 + "\n\n" + "B" * 30
         first = chunk_text(text, size=45, overlap=8)

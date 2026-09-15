@@ -13,10 +13,17 @@ class DiamondCatalog:
     """Load and search real diamond rows without asking the language model to calculate."""
 
     def __init__(self, diamonds: pd.DataFrame):
-        missing = REQUIRED_COLUMNS - set(diamonds.columns)
+        # Kaggle exports often include the previously saved DataFrame index as
+        # ``Unnamed: 0``. It identifies a CSV row, not a diamond characteristic.
+        index_columns = [
+            column for column in diamonds.columns
+            if str(column).casefold().startswith("unnamed:")
+        ]
+        clean = diamonds.drop(columns=index_columns, errors="ignore")
+        missing = REQUIRED_COLUMNS - set(clean.columns)
         if missing:
             raise ValueError(f"Diamond dataset is missing columns: {sorted(missing)}")
-        self.diamonds = diamonds.copy()
+        self.diamonds = clean.copy()
 
     @classmethod
     def from_csv(cls, path: str | Path) -> "DiamondCatalog":

@@ -142,15 +142,41 @@ def _render_trace(st, result: dict, expanded: bool = True) -> None:
         st.json(result.get("trace", []))
 
 
+def _describe_matches(frame: pd.DataFrame) -> list[str]:
+    """Turn ranked dataset rows into concise descriptions for ordinary users."""
+    descriptions = []
+    for number, (_, row) in enumerate(frame.head(5).iterrows(), start=1):
+        price = f"${float(row['price']):,.0f}" if pd.notna(row.get("price")) else "Price unavailable"
+        traits = []
+        if pd.notna(row.get("carat")):
+            traits.append(f"{float(row['carat']):.2f} carats")
+        if pd.notna(row.get("cut")):
+            traits.append(f"{row['cut']} cut")
+        if pd.notna(row.get("color")):
+            traits.append(f"{row['color']} color")
+        if pd.notna(row.get("clarity")):
+            traits.append(f"{row['clarity']} clarity")
+        sentence = f"{number}. **{price}** — " + (", ".join(traits) or "matching dataset diamond") + "."
+        details = []
+        if pd.notna(row.get("similarity_score")):
+            details.append(f"{float(row['similarity_score']) * 100:.0f}% similarity to the reference")
+        if pd.notna(row.get("model_price")):
+            details.append(f"ANN price estimate ${float(row['model_price']):,.0f}")
+        if details:
+            sentence += " " + "; ".join(details).capitalize() + "."
+        descriptions.append(sentence)
+    return descriptions
+
+
 def _render_message_result(st, result: dict, developer_mode: bool, heading: bool = False) -> None:
-    """Render recommendation rows and optional pipeline evidence for one answer."""
+    """Describe ranked matches in prose and expose raw tables only to developers."""
     recommendations = result.get("similar_matches")
     if recommendations is None or recommendations.empty:
         recommendations = result["matches"]
     if not recommendations.empty:
         if heading:
-            st.subheader("Recommended dataset examples")
-        st.dataframe(recommendations, width="stretch", hide_index=True)
+            st.subheader("Closest dataset matches")
+        st.markdown("\n\n".join(_describe_matches(recommendations)))
     if developer_mode:
         _render_trace(st, result, expanded=heading)
 
