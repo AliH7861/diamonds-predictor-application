@@ -54,7 +54,7 @@ class AssistantPipelineTests(unittest.TestCase):
         assistant = DiamondAssistant(
             llm, DiamondCatalog(make_diamonds(rows=80)), stores, FakeEnricher(), top_diamonds=3
         )
-        result = assistant.ask("I prioritize sparkle. Show options under $10,000.")
+        result = assistant.ask("I prioritize sparkle. Explain options priced at $10,000.")
         self.assertEqual(len(result["matches"]), 3)
         self.assertIn("model_price", result["matches"])
         self.assertEqual(stores.queries, ["cut sparkle", "clarity value"])
@@ -100,13 +100,11 @@ class AssistantPipelineTests(unittest.TestCase):
         assistant = DiamondAssistant(
             FakeLLM(), DiamondCatalog(make_diamonds(rows=80)), FakeStores()
         )
-        first = assistant.ask(
-            "I want a diamond below 3000 between 0.35 and 0.45 carrot."
-        )
+        first = assistant.ask("I want a diamond and clarity matters.")
         self.assertEqual(first["status"], "needs_clarification")
 
         second = assistant.ask(
-            "I don't care about clarity grade.",
+            "Below 3000, between 0.35 and 0.45 carat, and VS clarity.",
             state=first["conversation_state"],
         )
 

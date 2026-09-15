@@ -22,6 +22,7 @@ class DiamondQueryPlan:
     search_dataset: bool = False
     min_price: float | None = None
     max_price: float | None = None
+    target_price: float | None = None
     target_carat: float | None = None
     carat_tolerance: float = 0.10
     depth: float | None = None
@@ -45,7 +46,7 @@ class DiamondQueryPlan:
         clean["priorities"] = list(clean.get("priorities") or [])
         clean["knowledge_queries"] = list(clean.get("knowledge_queries") or [])
         for key in (
-            "min_price", "max_price", "target_carat", "carat_tolerance",
+            "min_price", "max_price", "target_price", "target_carat", "carat_tolerance",
             "depth", "table", "x", "y", "z",
         ):
             item = clean.get(key)

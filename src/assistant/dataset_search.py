@@ -56,6 +56,10 @@ class DiamondCatalog:
 
         sort_columns = []
         ascending = []
+        if plan.target_price is not None:
+            matches = matches.assign(_price_distance=(matches["price"] - plan.target_price).abs())
+            sort_columns.append("_price_distance")
+            ascending.append(True)
         if plan.target_carat is not None:
             matches = matches.assign(_carat_distance=(matches["carat"] - plan.target_carat).abs())
             sort_columns.append("_carat_distance")
@@ -63,6 +67,6 @@ class DiamondCatalog:
         sort_columns.append("price")
         ascending.append(True)
         ranked = matches.sort_values(sort_columns, ascending=ascending).drop(
-            columns="_carat_distance", errors="ignore"
+            columns=["_price_distance", "_carat_distance"], errors="ignore"
         )
         return ranked.head(limit).copy() if limit is not None else ranked.copy()

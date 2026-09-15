@@ -127,7 +127,7 @@ def _check_buying_conversation(assistant: DiamondAssistant, llm: DeterministicLL
     first = assistant.ask(first_question)
     if first["status"] != "needs_clarification" or first["knowledge"]:
         raise AssertionError("CI: incomplete buying request was embedded before clarification.")
-    if "carat" not in first["answer"].casefold() or first["saved_memory"]:
+    if "clarity" not in first["answer"].casefold() or first["saved_memory"]:
         raise AssertionError("CI: clarification should happen before embedding or memory storage.")
     print("PASS  incomplete buying request clarifies before any embedding")
 

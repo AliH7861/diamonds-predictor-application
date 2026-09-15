@@ -43,7 +43,7 @@ def test_budget_range_and_no_clarity_preference_complete_the_plan():
     assert initial.max_price == 3000
     assert initial.target_carat == 0.40
     assert initial.carat_tolerance == 0.05
-    assert initial.needs_clarification
+    assert not initial.needs_clarification
 
     conversation = (
         f"user: {first}\n"
@@ -56,6 +56,19 @@ def test_budget_range_and_no_clarity_preference_complete_the_plan():
     assert final.target_carat == 0.40
     assert final.clarity is None
     assert not final.needs_clarification
+
+
+def test_budget_alone_is_enough_to_return_recommendations():
+    plan = build_buying_plan(
+        "Can you give me a great diamond around the price $2000?",
+        "No earlier conversation.",
+    )
+
+    assert plan is not None
+    assert plan.min_price == 1800
+    assert plan.max_price == 2200
+    assert plan.target_price == 2000
+    assert not plan.needs_clarification
 
 
 def test_common_typos_and_k_budget_are_normalized():

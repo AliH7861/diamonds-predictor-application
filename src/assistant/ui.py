@@ -210,7 +210,10 @@ def render_app(st, assistant_factory) -> None:
     _initialize_sessions(st)
 
     @st.cache_resource
-    def load_assistant():
+    def load_assistant(interface_version="conversation-state-v2"):
+        # The version argument is part of Streamlit's cache key. Incrementing
+        # it prevents an older service object from surviving an interface
+        # change and rejecting newer keyword arguments such as ``state``.
         return assistant_factory()
 
     try:

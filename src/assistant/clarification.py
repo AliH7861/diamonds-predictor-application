@@ -7,7 +7,7 @@ from .schemas import DiamondQueryPlan
 
 BUYING_MARKERS = (
     "i want", "find", "recommend", "looking for", "budget", "buy", "give me",
-    "good diamond", "best value", "how many",
+    "good diamond", "best value", "how many", "below", "under", "carat",
 )
 CUT_GRADES = ("Fair", "Good", "Very Good", "Premium", "Ideal")
 CLARITY_GRADES = ("I1", "SI2", "SI1", "VS2", "VS1", "VVS2", "VVS1", "IF")
@@ -175,14 +175,14 @@ def build_buying_plan(
 
     missing = []
     if require_recommendation_details:
-        if budget is None:
-            missing.append("your maximum budget")
-        if carat is None:
-            missing.append("the carat size you are targeting")
-        if "clarity" in priorities and clarity is None:
+        # One concrete constraint is enough to start a useful search. The
+        # assistant should not force buyers through a form-like interview when
+        # they have already supplied a budget, size, or quality preference.
+        has_search_constraint = any((budget, carat, cut, color, clarity))
+        if not has_search_constraint:
+            missing.append("your budget, preferred carat size, or quality preference")
+        elif "clarity" in priorities and clarity is None and not no_clarity_preference:
             missing.append("the clarity grade or range you would accept")
-        elif cut is None and clarity is None and not (no_clarity_preference or no_cut_preference):
-            missing.append("a preferred cut or clarity grade")
 
     clarification = None
     if missing:
@@ -190,8 +190,10 @@ def build_buying_plan(
 
     min_price = None
     max_price = budget
+    target_price = None
     if budget is not None and "around" in question.casefold() and "budget" not in question.casefold():
         min_price, max_price = budget * 0.9, budget * 1.1
+        target_price = budget
 
     query_parts = ["diamond buying trade-offs"]
     if priorities:
@@ -206,6 +208,7 @@ def build_buying_plan(
         search_dataset=True,
         min_price=min_price,
         max_price=max_price,
+        target_price=target_price,
         target_carat=carat,
         carat_tolerance=carat_tolerance,
         depth=stated_number("depth"),

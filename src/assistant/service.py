@@ -55,6 +55,8 @@ class DiamondAssistant:
         parts = []
         if state.get("max_price") is not None:
             parts.append(f"maximum budget ${state['max_price']}")
+        if state.get("target_price") is not None:
+            parts.append(f"target price ${state['target_price']}")
         target = state.get("target_carat")
         tolerance = state.get("carat_tolerance")
         if target is not None and tolerance:
@@ -81,7 +83,7 @@ class DiamondAssistant:
         """Store only reusable filters instead of repeatedly sending full chat history."""
         result = dict(state or {})
         for field in (
-            "min_price", "max_price", "target_carat", "carat_tolerance",
+            "min_price", "max_price", "target_price", "target_carat", "carat_tolerance",
             "depth", "table", "x", "y", "z", "cut", "color", "clarity",
             "priorities",
         ):
