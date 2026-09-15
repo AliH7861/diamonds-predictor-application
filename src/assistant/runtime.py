@@ -17,14 +17,14 @@ def create_assistant(include_models: bool = True) -> DiamondAssistant:
         embedding_model=settings.embedding_model,
         base_url=settings.ollama_url,
     )
-    # Load Qwen once while Streamlit creates its cached assistant. This avoids
-    # paying the model-load cost after the user's first message is submitted.
-    llm.warmup()
     stores = ChromaStores(settings.project_root / "vector_db" / "chroma_v2", llm)
     stores.index_knowledge(settings.project_root / "knowledge")
     catalog = DiamondCatalog.from_csv(settings.data_path)
     models = ModelEvidenceProvider(settings.project_root) if include_models else None
     similarity = StructuredSimilaritySearch(catalog.diamonds)
+    # Warm Qwen last so the chat model remains the most recently used Ollama
+    # model when the first question arrives.
+    llm.warmup()
     return DiamondAssistant(
         llm, catalog, stores, models, similarity,
         top_diamonds=settings.top_diamonds,

@@ -13,7 +13,7 @@ class AssistantSettings:
 
     project_root: Path = PROJECT_ROOT
     data_path: Path = RAW_DATA_PATH
-    chat_model: str = "qwen3.5:4b"
+    chat_model: str = "qwen3.5:0.8b"
     embedding_model: str = "nomic-embed-text"
     ollama_url: str = "http://127.0.0.1:11434"
     top_diamonds: int = 5
@@ -25,7 +25,7 @@ class AssistantSettings:
         """Read optional local overrides without changing source files."""
         return cls(
             data_path=Path(os.getenv("DIAMOND_DATA_PATH", str(RAW_DATA_PATH))),
-            chat_model=os.getenv("DIAMOND_CHAT_MODEL", "qwen3.5:4b"),
+            chat_model=os.getenv("DIAMOND_CHAT_MODEL", "qwen3.5:0.8b"),
             embedding_model=os.getenv("DIAMOND_EMBEDDING_MODEL", "nomic-embed-text"),
             ollama_url=os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434"),
         )

@@ -9,7 +9,7 @@ from urllib.request import Request, urlopen
 class OllamaClient:
     """Call a local Ollama server; no cloud credentials or network service is required."""
 
-    def __init__(self, chat_model="qwen3.5:4b", embedding_model="nomic-embed-text", base_url="http://127.0.0.1:11434"):
+    def __init__(self, chat_model="qwen3.5:0.8b", embedding_model="nomic-embed-text", base_url="http://127.0.0.1:11434"):
         self.chat_model = chat_model
         self.embedding_model = embedding_model
         self.base_url = base_url.rstrip("/")

@@ -299,7 +299,7 @@ Use Docker-backed training/validation. Linux avoids the managed Windows native D
 
 ### Ollama unavailable
 
-Run `ollama serve` and install `qwen3.5:4b` plus `nomic-embed-text`. Override with `DIAMOND_CHAT_MODEL`, `DIAMOND_EMBEDDING_MODEL`, or `OLLAMA_BASE_URL`.
+Run `ollama serve` and install `qwen3.5:0.8b` plus `nomic-embed-text`. The 0.8B model is the fast local default. Set `DIAMOND_CHAT_MODEL=qwen3.5:4b` when response quality matters more than CPU latency. You can also override `DIAMOND_EMBEDDING_MODEL` or `OLLAMA_BASE_URL`.
 
 ### Frontend cannot reach backend
 

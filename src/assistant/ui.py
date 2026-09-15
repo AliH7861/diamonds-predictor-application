@@ -271,7 +271,7 @@ def render_app(st, assistant_factory) -> None:
         with st.chat_message("user"):
             st.markdown(_safe_markdown(question))
         with st.chat_message("assistant"):
-            with st.spinner("Searching dataset rows, model evidence, and diamond knowledge..."):
+            with st.spinner("Working on your request..."):
                 try:
                     response = st.empty()
                     streamed_text = []

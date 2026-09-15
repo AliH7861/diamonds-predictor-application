@@ -140,6 +140,25 @@ class AssistantPipelineTests(unittest.TestCase):
         self.assertIn("No diamonds", result["answer"])
         self.assertEqual(llm.complete_calls, 0)
 
+    def test_simple_recommendation_skips_rag_and_generation(self):
+        llm = FakeLLM()
+        stores = FakeStores()
+        assistant = DiamondAssistant(
+            llm, DiamondCatalog(make_diamonds(rows=80)), stores
+        )
+
+        result = assistant.ask(
+            "Find a diamond under 3000 between 0.35 and 0.45 carat; "
+            "I don't care about clarity."
+        )
+
+        self.assertEqual(result["status"], "answered")
+        self.assertEqual(result["route"]["intent"], "recommendation")
+        self.assertFalse(result["route"]["use_knowledge"])
+        self.assertEqual(llm.complete_calls, 0)
+        self.assertEqual(stores.queries, [])
+        self.assertIn("close dataset matches", result["answer"])
+
 
 if __name__ == "__main__":
     unittest.main()

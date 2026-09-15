@@ -150,7 +150,7 @@ def _check_buying_conversation(assistant: DiamondAssistant, llm: DeterministicLL
         {"role": "assistant", "content": second["answer"]},
     ])
     third = assistant.ask(
-        "VS2 clarity or better, with an Ideal cut.",
+        "VS2 clarity or better, with an Ideal cut. Explain the trade-offs.",
         conversation=conversation[-2:],
         state=second["conversation_state"],
     )
@@ -220,7 +220,7 @@ def run_live_test() -> None:
         print(f"ANSWER PASS     {question}")
     except Exception as error:
         raise SystemExit(
-            "Live RAG test failed. Run 'ollama serve', pull qwen3.5:4b and "
+            "Live RAG test failed. Run 'ollama serve', pull qwen3.5:0.8b and "
             f"nomic-embed-text, and install requirements-assistant.txt.\nReason: {error}"
         ) from error
     print("\nLIVE RAG STATUS: SUCCESS")

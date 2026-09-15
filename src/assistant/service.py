@@ -246,6 +246,10 @@ class DiamondAssistant:
             plan = DiamondQueryPlan(knowledge_queries=[question])
         elif buying_plan is not None:
             plan = buying_plan
+        elif route.intent == "general_knowledge":
+            # The user's question is already the best semantic query. Avoid a
+            # separate LLM planning call before retrieval.
+            plan = DiamondQueryPlan(knowledge_queries=[question])
         else:
             plan_data = self.llm.structured(
                 "Return JSON for a diamond search plan. Set search_dataset false for factual "
@@ -286,6 +290,35 @@ class DiamondAssistant:
                     {"stage": "routing", "result": asdict(route)},
                     {"stage": "dataset_search", "result": 0},
                     {"stage": "generation", "result": "skipped; no exact matches"},
+                ],
+                "conversation_state": next_state,
+            }
+
+        if (
+            route.intent == "recommendation"
+            and not route.use_knowledge
+            and not route.use_models
+        ):
+            prices = matches["price"]
+            carats = matches["carat"]
+            answer = (
+                f"I found {len(matches)} close dataset matches from "
+                f"${prices.min():,.0f} to ${prices.max():,.0f}, ranging from "
+                f"{carats.min():.2f} to {carats.max():.2f} carats. "
+                "The closest options are described below."
+            )
+            empty = self.catalog.diamonds.head(0).copy()
+            return {
+                "status": "answered", "answer": answer, "matches": matches,
+                "similar_matches": empty, "route": asdict(route), "plan": asdict(plan),
+                "initial_queries": [], "needed_second_retrieval": False,
+                "extra_queries": [], "knowledge": [], "knowledge_details": [],
+                "retrieved_memory": memory, "saved_memory": None,
+                "evidence": {"matching_count": len(matches)},
+                "trace": [
+                    {"stage": "routing", "result": asdict(route)},
+                    {"stage": "dataset_search", "result": len(matches)},
+                    {"stage": "generation", "result": "skipped; direct dataset answer"},
                 ],
                 "conversation_state": next_state,
             }
