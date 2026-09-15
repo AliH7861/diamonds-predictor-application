@@ -1,5 +1,7 @@
 """Choose the smallest useful set of evidence sources for each question."""
 
+import re
+
 from .schemas import EvidenceRoute
 from .clarification import normalize_user_text
 
@@ -8,6 +10,16 @@ def route_question(question: str, conversation_text: str = "") -> EvidenceRoute:
     """Classify user intent with auditable rules before retrieval or inference."""
     text = normalize_user_text(f"{conversation_text}\n{question}").casefold()
     current = normalize_user_text(question).casefold()
+    conversational = re.sub(r"[^\w\s']", "", current).strip()
+
+    small_talk = {
+        "hi", "hello", "hey", "hey there", "hi there", "yo",
+        "good morning", "good afternoon", "good evening",
+        "thanks", "thank you", "thank you so much", "got it", "okay thanks",
+        "help", "what can you do", "who are you", "how do you work",
+    }
+    if conversational in small_talk:
+        return EvidenceRoute("small_talk", use_memory=False)
 
     unavailable_fields = (
         "who certified", "country was", "country mined", "mined in",

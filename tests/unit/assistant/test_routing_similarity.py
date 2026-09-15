@@ -22,6 +22,16 @@ def test_router_uses_only_knowledge_for_definition():
     assert not route.use_models
 
 
+def test_router_keeps_greetings_out_of_rag_even_with_saved_preferences():
+    route = route_question(
+        "Hey",
+        "Saved search preferences: between 0.25 and 0.55 carats; clarity VS.",
+    )
+    assert route.intent == "small_talk"
+    assert not route.use_knowledge
+    assert not route.use_memory
+
+
 def test_router_selects_structured_similarity_for_comparative_request():
     route = route_question("Find something similar but cheaper.")
     assert route.intent == "similarity_search"

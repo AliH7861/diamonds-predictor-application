@@ -167,6 +167,35 @@ class DiamondAssistant:
         state_text = self._state_text(state)
         context_text = f"{state_text}\n{conversation_text}"
         route = route_question(question, context_text)
+        if route.intent == "small_talk":
+            current = normalize_user_text(question).casefold()
+            if "thank" in current or current.strip(" .!") in {"got it", "okay thanks"}:
+                answer = "You're welcome. Ask whenever you want to compare diamonds."
+            elif any(phrase in current for phrase in ("help", "what can you do", "who are you", "how do you work")):
+                answer = (
+                    "I can find diamonds by budget, size, cut, color, or clarity; compare "
+                    "real dataset examples; explain quality trade-offs; and use the saved "
+                    "models for price or clarity estimates."
+                )
+            else:
+                answer = (
+                    "Hi. Tell me your budget or the diamond qualities that matter to you, "
+                    "and I can suggest matching options."
+                )
+            empty = self.catalog.diamonds.head(0).copy()
+            plan = DiamondQueryPlan()
+            return {
+                "status": "answered", "answer": answer, "matches": empty,
+                "similar_matches": empty, "route": asdict(route), "plan": asdict(plan),
+                "initial_queries": [], "needed_second_retrieval": False,
+                "extra_queries": [], "knowledge": [], "knowledge_details": [],
+                "retrieved_memory": [], "saved_memory": None, "evidence": {},
+                "trace": [
+                    {"stage": "routing", "result": asdict(route)},
+                    {"stage": "generation", "result": "skipped; conversational response"},
+                ],
+                "conversation_state": dict(state or {}),
+            }
         if route.intent == "unsupported_dataset_field":
             empty = self.catalog.diamonds.head(0).copy()
             answer = (

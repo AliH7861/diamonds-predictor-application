@@ -27,8 +27,10 @@ class FakeStores:
     def __init__(self):
         self.saved = []
         self.queries = []
+        self.memory_queries = []
 
     def search_memory(self, question, limit):
+        self.memory_queries.append(question)
         return ["User likes Ideal cut."]
 
     def search_knowledge(self, queries, limit):
@@ -66,6 +68,26 @@ class AssistantPipelineTests(unittest.TestCase):
         assistant = DiamondAssistant(FakeLLM(), DiamondCatalog(make_diamonds()), FakeStores())
         with self.assertRaisesRegex(ValueError, "contain text"):
             assistant.ask("  ")
+
+    def test_greeting_skips_dataset_rag_models_and_memory(self):
+        llm = FakeLLM()
+        stores = FakeStores()
+        assistant = DiamondAssistant(
+            llm, DiamondCatalog(make_diamonds()), stores, FakeEnricher()
+        )
+
+        result = assistant.ask(
+            "Hey",
+            state={"target_carat": 0.4, "clarity": "VS"},
+        )
+
+        self.assertEqual(result["route"]["intent"], "small_talk")
+        self.assertIn("Hi", result["answer"])
+        self.assertEqual(llm.complete_calls, 0)
+        self.assertEqual(llm.structured_calls, 0)
+        self.assertEqual(stores.queries, [])
+        self.assertEqual(stores.memory_queries, [])
+        self.assertTrue(result["matches"].empty)
 
     def test_natural_language_price_request_routes_to_saved_ann_evidence(self):
         assistant = DiamondAssistant(
