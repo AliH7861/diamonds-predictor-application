@@ -56,6 +56,8 @@ class DiamondAssistant:
                 frame = result.get(key)
                 if isinstance(frame, pd.DataFrame) and not frame.empty:
                     return frame.iloc[0]
+                if isinstance(frame, list) and frame:
+                    return pd.Series(frame[0])
         return None
 
     def _empty_result(self, plan: DiamondQueryPlan, route, answer: str, memory: list[str]) -> dict:

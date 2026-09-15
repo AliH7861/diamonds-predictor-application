@@ -101,7 +101,10 @@ def render_app(st, assistant_factory) -> None:
         assistant = load_assistant()
     except Exception as error:
         st.error(f"Assistant setup failed: {error}")
-        st.info("Check the dataset, run 'ollama serve', and install requirements-assistant.txt.")
+        st.info(
+            "For local mode, check the dataset and Ollama. For split mode, check "
+            "DIAMOND_ASSISTANT_API_URL, the API token, and the local backend."
+        )
         return
 
     if "messages" not in st.session_state:

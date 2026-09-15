@@ -31,10 +31,15 @@ jobs:
           pytest -q tests/integration
           --ignore=tests/integration/test_assistant_pipeline.py
           --ignore=tests/integration/test_assistant_ui.py
+          --ignore=tests/integration/test_assistant_http.py
           --ignore=tests/integration/test_clustering_pipeline.py
 
-      - name: Assistant and UI component tests
-        run: pytest -q tests/unit/assistant tests/integration/test_assistant_pipeline.py tests/integration/test_assistant_ui.py
+      - name: Assistant, HTTP, and UI component tests
+        run: >-
+          pytest -q tests/unit/assistant
+          tests/integration/test_assistant_pipeline.py
+          tests/integration/test_assistant_http.py
+          tests/integration/test_assistant_ui.py
 
       - name: Install RAG integration dependency
         run: pip install -r requirements-rag-ci.txt
