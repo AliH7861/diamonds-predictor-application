@@ -1,0 +1,64 @@
+name: Diamond Project CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+
+      - name: Lint
+        run: ruff check src tests scripts config.py app.py
+
+      - name: Unit tests
+        run: pytest -q tests/unit --ignore=tests/unit/assistant
+
+      - name: Integration tests
+        run: >-
+          pytest -q tests/integration
+          --ignore=tests/integration/test_assistant_pipeline.py
+          --ignore=tests/integration/test_assistant_ui.py
+          --ignore=tests/integration/test_clustering_pipeline.py
+
+      - name: Assistant and UI component tests
+        run: pytest -q tests/unit/assistant tests/integration/test_assistant_pipeline.py tests/integration/test_assistant_ui.py
+
+      - name: Install RAG integration dependency
+        run: pip install -r requirements-rag-ci.txt
+
+      - name: RAG embeddings and Chroma end-to-end test
+        run: python scripts/test_rag.py --ci
+
+      - name: Buyer segmentation end-to-end smoke test
+        run: pytest -q tests/integration/test_clustering_pipeline.py
+
+      - name: End-to-end tests
+        run: pytest -q tests/e2e
+
+      - name: Terminal validation
+        run: python scripts/phase1_end_to_end.py
+
+  docker:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t diamond-project .
+
+      - name: Run validation in container
+        run: docker run --rm diamond-project

@@ -1,0 +1,10 @@
+numpy
+pandas
+scikit-learn==1.7.2
+joblib
+xgboost
+catboost
+lightgbm
+tensorflow==2.21.0
+streamlit
+chromadb==1.5.9

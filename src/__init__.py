@@ -1,0 +1,1 @@
+"""Diamond project Python modules."""

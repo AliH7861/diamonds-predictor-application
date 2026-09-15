@@ -1,0 +1,36 @@
+# Python and notebook state
+.venv/
+.env
+.env.*
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# Local editor and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Private/raw and generated data
+/data/raw/*
+!/data/raw/.gitkeep
+/data/processed/**/*.csv
+
+# Generated experiment artifacts
+/outputs/**/*.png
+/outputs/**/*.csv
+/outputs/**/*.json
+/outputs/**/*.ipynb
+/models/**/*.keras
+/models/**/*.joblib
+/models/**/*.json
+/vector_db/
+
+# Local caches
+/kaggle_cache/
+*.log

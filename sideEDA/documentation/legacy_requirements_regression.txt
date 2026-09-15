@@ -1,0 +1,11 @@
+numpy
+pandas
+matplotlib
+scikit-learn==1.7.2
+xgboost
+catboost
+lightgbm
+joblib
+jupyter
+nbformat
+nbclient

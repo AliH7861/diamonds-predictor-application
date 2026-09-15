@@ -1,0 +1,146 @@
+[
+  {
+    "path": "sideEDA/DiamondCaptsone.ipynb",
+    "original_path": "C:\\Users\\alihu\\DiamaondCaptsone.ipynb",
+    "sha256": "b7345500b3988ce68a768b4089a6133f1735b4c1d8e580c55dffd0e43bae0c5e",
+    "kind": "recovered original Diamond notebook",
+    "original_sha256": "2f7fb009f4720448ce59d8b6da17c001ed581d11422c446c1be5a62518492957",
+    "path_updates": 66
+  },
+  {
+    "path": "sideEDA/DiamondCaptsoneANN.ipynb",
+    "original_path": "C:\\Users\\alihu\\DiamaondCaptsoneANN.ipynb",
+    "sha256": "2cde9c5d159bbeea7a65fda8a477b31122e923bbae69fbced2c7c507160c35b4",
+    "kind": "recovered original Diamond notebook",
+    "original_sha256": "cd47724912b34c2ea189af2aaf952704267e4ff8c686dd936641b25457009e6c",
+    "path_updates": 28
+  },
+  {
+    "path": "sideEDA/DiamondCaptsonePrice.ipynb",
+    "original_path": "C:\\Users\\alihu\\DiamaondCaptsonePrice.ipynb",
+    "sha256": "d9977eeef20840f6e3f68a595bcca08f6b000cd9b8a9029e6bb498201f26ea51",
+    "kind": "recovered original Diamond notebook",
+    "original_sha256": "ff96af624f8f32982e7774c47d3d7958e2655c2d543c396bcfbe1ad459651fb5",
+    "path_updates": 128
+  },
+  {
+    "path": "sideEDA/outputs/reports/regression/final/final_model_family_metrics.csv",
+    "original_path": "C:\\Users\\alihu\\final_model_family_metrics.csv",
+    "sha256": "84c641278642c18474ae2ae4b8112a8b6e67dc54694d2add5053bd7b7e6b9e3b",
+    "kind": "recovered Diamond experiment artifact"
+  },
+  {
+    "path": "sideEDA/outputs/reports/regression/final/final_price_band_metrics.csv",
+    "original_path": "C:\\Users\\alihu\\final_price_band_metrics.csv",
+    "sha256": "e7594c213395a751c05456c25cf3c58dfd314228a6c47324f84706cc348cae05",
+    "kind": "recovered Diamond experiment artifact"
+  },
+  {
+    "path": "sideEDA/configuration/regression/final_price_experiment_definition.json",
+    "original_path": "C:\\Users\\alihu\\final_price_experiment_definition.json",
+    "sha256": "1fb8b395391aad470cd2f93f328b50d84f0e89f9a561b22beca0002db7a22a51",
+    "kind": "recovered Diamond experiment artifact"
+  },
+  {
+    "path": "sideEDA/outputs/reports/regression/final/final_price_experiment_metrics.csv",
+    "original_path": "C:\\Users\\alihu\\final_price_experiment_metrics.csv",
+    "sha256": "9c4b371e5265dcfb5ef99a9f0f66a5b1a5374aa4af4b0501c868c346e26d89ea",
+    "kind": "recovered Diamond experiment artifact"
+  },
+  {
+    "path": "sideEDA/references/regression/final_price_project_snapshot.txt",
+    "original_path": "C:\\Users\\alihu\\final_price_project_snapshot.txt",
+    "sha256": "33b1edabffe094a764bbac804baf6eb55b4234f03f2e1212b7473abf58750a2d",
+    "kind": "recovered Diamond experiment artifact"
+  },
+  {
+    "path": "sideEDA/outputs/reports/regression/r10_5/r10_5_price_band_metrics.csv",
+    "original_path": "C:\\Users\\alihu\\r10_5_price_band_metrics.csv",
+    "sha256": "e7594c213395a751c05456c25cf3c58dfd314228a6c47324f84706cc348cae05",
+    "kind": "recovered Diamond experiment artifact"
+  },
+  {
+    "path": "sideEDA/outputs/reports/regression/r10_5/r10_5_test_full_metrics.csv",
+    "original_path": "C:\\Users\\alihu\\r10_5_test_full_metrics.csv",
+    "sha256": "9c4b371e5265dcfb5ef99a9f0f66a5b1a5374aa4af4b0501c868c346e26d89ea",
+    "kind": "recovered Diamond experiment artifact"
+  },
+  {
+    "path": "sideEDA/outputs/reports/regression/r10_5/r10_5_validation_full_metrics.csv",
+    "original_path": "C:\\Users\\alihu\\r10_5_validation_full_metrics.csv",
+    "sha256": "8b6efa9f9d01d4aa413d6d8889da810c0115eb29e5821fae279e0bc206add035",
+    "kind": "recovered Diamond experiment artifact"
+  },
+  {
+    "path": "sideEDA/outputs/reports/regression/r10/r10_final_model_comparison.csv",
+    "original_path": "C:\\Users\\alihu\\r10_final_model_comparison.csv",
+    "sha256": "96b12a637461664da7d157260bfb4d02453d37a2a5d5f1797b0bdad23103e0c7",
+    "kind": "recovered Diamond experiment artifact"
+  },
+  {
+    "path": "sideEDA/outputs/reports/regression/r10/r10_validation_feature_comparison.csv",
+    "original_path": "C:\\Users\\alihu\\r10_validation_feature_comparison.csv",
+    "sha256": "027091edffebc51afc16ce8b47a50046f0ed364c994a9dc3d596af688a07de5f",
+    "kind": "recovered Diamond experiment artifact"
+  },
+  {
+    "path": "sideEDA/outputs/reports/regression/r12/r12_final_model_family_comparison.csv",
+    "original_path": "C:\\Users\\alihu\\r12_final_model_family_comparison.csv",
+    "sha256": "84c641278642c18474ae2ae4b8112a8b6e67dc54694d2add5053bd7b7e6b9e3b",
+    "kind": "recovered Diamond experiment artifact"
+  },
+  {
+    "path": "sideEDA/outputs/reports/regression/r12/r12_final_test_predictions.csv",
+    "original_path": "C:\\Users\\alihu\\r12_final_test_predictions.csv",
+    "sha256": "f3a43621d2c4847f5ead1587d3953ea78d4e2f5d348a1e72275cde84bb46b088",
+    "kind": "recovered Diamond experiment artifact"
+  },
+  {
+    "path": "sideEDA/configuration/classification/y17_best_ann_parameters.json",
+    "original_path": "C:\\Users\\alihu\\y17_best_ann_parameters.json",
+    "sha256": "82acb9267addf9b4e8107657a186451569d485d86661630255d6fdaf671199a4",
+    "kind": "recovered Diamond experiment artifact"
+  },
+  {
+    "path": "sideEDA/models/regression/final_price_model/best_hyperparameters.json",
+    "original_path": "C:\\Users\\alihu\\final_price_model\\best_hyperparameters.json",
+    "sha256": "1e4234db86c6e5ce9854bf7657189b5cafbbf1130c5a95fb3b2166504e6772a5",
+    "kind": "historical saved regression model artifact; not newly trained"
+  },
+  {
+    "path": "sideEDA/models/regression/final_price_model/feature_importance.csv",
+    "original_path": "C:\\Users\\alihu\\final_price_model\\feature_importance.csv",
+    "sha256": "e5f8ec76400ee53f2703a810c5e965ec70219c93d4e5141ee060d0904961a791",
+    "kind": "historical saved regression model artifact; not newly trained"
+  },
+  {
+    "path": "sideEDA/models/regression/final_price_model/final_metrics.json",
+    "original_path": "C:\\Users\\alihu\\final_price_model\\final_metrics.json",
+    "sha256": "65c531347808b902a4a3e228c90098360bbf6606cea5a79df9a03dbdc6b59142",
+    "kind": "historical saved regression model artifact; not newly trained"
+  },
+  {
+    "path": "sideEDA/models/regression/final_price_model/final_price_preprocessor.joblib",
+    "original_path": "C:\\Users\\alihu\\final_price_model\\final_price_preprocessor.joblib",
+    "sha256": "7894b08e3fa510ae4e65fe59d6c6a6c12e4123a3ff3e401de892e0b35d0c5dbd",
+    "kind": "historical saved regression model artifact; not newly trained"
+  },
+  {
+    "path": "sideEDA/models/regression/final_price_model/final_xgboost_price_model.json",
+    "original_path": "C:\\Users\\alihu\\final_price_model\\final_xgboost_price_model.json",
+    "sha256": "24cf86f5fbc04f1fe9e39b588ae04d23e69ef8386865e85f4bff49a1e46dd768",
+    "kind": "historical saved regression model artifact; not newly trained"
+  },
+  {
+    "path": "sideEDA/models/regression/final_price_model/optuna_trials.csv",
+    "original_path": "C:\\Users\\alihu\\final_price_model\\optuna_trials.csv",
+    "sha256": "90135b08dc4dbb354e5a4af181e1bb447b020e92a6a7ac8b5a0b7d5e6aa03880",
+    "kind": "historical saved regression model artifact; not newly trained"
+  },
+  {
+    "path": "sideEDA/models/regression/final_price_model/test_predictions.csv",
+    "original_path": "C:\\Users\\alihu\\final_price_model\\test_predictions.csv",
+    "sha256": "1797f87553de7fd41dd53da5d9f83388a0c2c16761660aea0e296fad8d85d3ab",
+    "kind": "historical saved regression model artifact; not newly trained"
+  }
+]

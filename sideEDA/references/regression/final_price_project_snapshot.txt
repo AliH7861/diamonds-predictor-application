@@ -1,0 +1,1898 @@
+
+
+==================================================================================================================================
+FINAL DIAMOND PRICE MODEL — COMPLETE PROJECT SNAPSHOT
+==================================================================================================================================
+
+Purpose:
+    Preserve the complete structure of the final diamond-price
+    regression experiments so the project can be understood later.
+
+Three main feature experiments:
+
+    Experiment 1:
+        CURRENT_BASELINE
+
+    Experiment 2:
+        HUMAN_ONLY
+
+    Experiment 3:
+        HUMAN_PLUS_RAW
+
+Final algorithms later compared:
+    XGBoost
+    Random Forest
+    CatBoost
+    LightGBM
+    ExtraTrees
+
+
+
+==================================================================================================================================
+1. ALL DATAFRAMES CURRENTLY IN MEMORY
+==================================================================================================================================
+
+X
+Shape: (53899, 65)
+Rows: 53899
+Columns: 65
+Column names:
+    001. carat
+    002. depth
+    003. table
+    004. x
+    005. y
+    006. z
+    007. REG_FaceArea
+    008. REG_Volume
+    009. REG_AspectRatio
+    010. REG_XYAsymmetry
+    011. REG_DepthToFace
+    012. REG_WeightPerFace
+    013. REG_WeightPerVolume
+    014. REG_TableDepthRatio
+    015. FINAL_Carat_I1
+    016. FINAL_Volume_I1
+    017. FINAL_FaceArea_I1
+    018. FINAL_FaceDiagonal_I1
+    019. FINAL_Carat_SI2
+    020. FINAL_Volume_SI2
+    021. FINAL_FaceArea_SI2
+    022. FINAL_FaceDiagonal_SI2
+    023. FINAL_Carat_SI1
+    024. FINAL_Volume_SI1
+    025. FINAL_FaceArea_SI1
+    026. FINAL_FaceDiagonal_SI1
+    027. FINAL_Carat_VS2
+    028. FINAL_Volume_VS2
+    029. FINAL_FaceArea_VS2
+    030. FINAL_FaceDiagonal_VS2
+    031. FINAL_Carat_VS1
+    032. FINAL_Volume_VS1
+    033. FINAL_FaceArea_VS1
+    034. FINAL_FaceDiagonal_VS1
+    035. FINAL_Carat_VVS2
+    036. FINAL_Volume_VVS2
+    037. FINAL_FaceArea_VVS2
+    038. FINAL_FaceDiagonal_VVS2
+    039. FINAL_Carat_VVS1
+    040. FINAL_Volume_VVS1
+    041. FINAL_FaceArea_VVS1
+    042. FINAL_FaceDiagonal_VVS1
+    043. FINAL_Carat_IF
+    044. FINAL_Volume_IF
+    045. FINAL_FaceArea_IF
+    046. FINAL_FaceDiagonal_IF
+    047. FINAL_Color_I1
+    048. FINAL_Cut_I1
+    049. FINAL_Color_SI2
+    050. FINAL_Cut_SI2
+    051. FINAL_Color_SI1
+    052. FINAL_Cut_SI1
+    053. FINAL_Color_VS2
+    054. FINAL_Cut_VS2
+    055. FINAL_Color_VS1
+    056. FINAL_Cut_VS1
+    057. FINAL_Color_VVS2
+    058. FINAL_Cut_VVS2
+    059. FINAL_Color_VVS1
+    060. FINAL_Cut_VVS1
+    061. FINAL_Color_IF
+    062. FINAL_Cut_IF
+    063. cut
+    064. color
+    065. clarity
+
+X_cat_test
+Shape: (8085, 43)
+Rows: 8085
+Columns: 43
+Column names:
+    001. carat
+    002. H_CutScore
+    003. H_ColorScore
+    004. H_ClarityScore
+    005. H_QualityBundle
+    006. H_AvgDiameter
+    007. H_FaceArea
+    008. H_FaceDiagonal
+    009. H_Volume
+    010. H_AspectRatio
+    011. H_XYAsymmetryPct
+    012. H_HeightToDiameter
+    013. H_DepthToFace
+    014. H_TableDepthRatio
+    015. H_FaceAreaPerCarat
+    016. H_CaratPerVolume
+    017. H_VolumePerCarat
+    018. H_FaceAreaResidualPct
+    019. H_VolumeResidualPct
+    020. H_DepthDeviation
+    021. H_TableDeviation
+    022. H_DistanceToMagicSize
+    023. H_AbsDistanceToMagicSize
+    024. H_JustAboveMagicSize
+    025. H_JustBelowMagicSize
+    026. H_AtLeast_0_5ct
+    027. H_AtLeast_0_75ct
+    028. H_AtLeast_1_0ct
+    029. H_AtLeast_1_5ct
+    030. H_AtLeast_2_0ct
+    031. H_ClarityAtSize
+    032. H_ColorAtSize
+    033. H_CutAtSize
+    034. H_PeerRarity
+    035. depth
+    036. table
+    037. x
+    038. y
+    039. z
+    040. cut
+    041. color
+    042. clarity
+    043. H_CaratBand
+
+X_cat_train
+Shape: (37729, 43)
+Rows: 37729
+Columns: 43
+Column names:
+    001. carat
+    002. H_CutScore
+    003. H_ColorScore
+    004. H_ClarityScore
+    005. H_QualityBundle
+    006. H_AvgDiameter
+    007. H_FaceArea
+    008. H_FaceDiagonal
+    009. H_Volume
+    010. H_AspectRatio
+    011. H_XYAsymmetryPct
+    012. H_HeightToDiameter
+    013. H_DepthToFace
+    014. H_TableDepthRatio
+    015. H_FaceAreaPerCarat
+    016. H_CaratPerVolume
+    017. H_VolumePerCarat
+    018. H_FaceAreaResidualPct
+    019. H_VolumeResidualPct
+    020. H_DepthDeviation
+    021. H_TableDeviation
+    022. H_DistanceToMagicSize
+    023. H_AbsDistanceToMagicSize
+    024. H_JustAboveMagicSize
+    025. H_JustBelowMagicSize
+    026. H_AtLeast_0_5ct
+    027. H_AtLeast_0_75ct
+    028. H_AtLeast_1_0ct
+    029. H_AtLeast_1_5ct
+    030. H_AtLeast_2_0ct
+    031. H_ClarityAtSize
+    032. H_ColorAtSize
+    033. H_CutAtSize
+    034. H_PeerRarity
+    035. depth
+    036. table
+    037. x
+    038. y
+    039. z
+    040. cut
+    041. color
+    042. clarity
+    043. H_CaratBand
+
+X_cat_trainval
+Shape: (45814, 43)
+Rows: 45814
+Columns: 43
+Column names:
+    001. carat
+    002. H_CutScore
+    003. H_ColorScore
+    004. H_ClarityScore
+    005. H_QualityBundle
+    006. H_AvgDiameter
+    007. H_FaceArea
+    008. H_FaceDiagonal
+    009. H_Volume
+    010. H_AspectRatio
+    011. H_XYAsymmetryPct
+    012. H_HeightToDiameter
+    013. H_DepthToFace
+    014. H_TableDepthRatio
+    015. H_FaceAreaPerCarat
+    016. H_CaratPerVolume
+    017. H_VolumePerCarat
+    018. H_FaceAreaResidualPct
+    019. H_VolumeResidualPct
+    020. H_DepthDeviation
+    021. H_TableDeviation
+    022. H_DistanceToMagicSize
+    023. H_AbsDistanceToMagicSize
+    024. H_JustAboveMagicSize
+    025. H_JustBelowMagicSize
+    026. H_AtLeast_0_5ct
+    027. H_AtLeast_0_75ct
+    028. H_AtLeast_1_0ct
+    029. H_AtLeast_1_5ct
+    030. H_AtLeast_2_0ct
+    031. H_ClarityAtSize
+    032. H_ColorAtSize
+    033. H_CutAtSize
+    034. H_PeerRarity
+    035. depth
+    036. table
+    037. x
+    038. y
+    039. z
+    040. cut
+    041. color
+    042. clarity
+    043. H_CaratBand
+
+X_cat_valid
+Shape: (8085, 43)
+Rows: 8085
+Columns: 43
+Column names:
+    001. carat
+    002. H_CutScore
+    003. H_ColorScore
+    004. H_ClarityScore
+    005. H_QualityBundle
+    006. H_AvgDiameter
+    007. H_FaceArea
+    008. H_FaceDiagonal
+    009. H_Volume
+    010. H_AspectRatio
+    011. H_XYAsymmetryPct
+    012. H_HeightToDiameter
+    013. H_DepthToFace
+    014. H_TableDepthRatio
+    015. H_FaceAreaPerCarat
+    016. H_CaratPerVolume
+    017. H_VolumePerCarat
+    018. H_FaceAreaResidualPct
+    019. H_VolumeResidualPct
+    020. H_DepthDeviation
+    021. H_TableDeviation
+    022. H_DistanceToMagicSize
+    023. H_AbsDistanceToMagicSize
+    024. H_JustAboveMagicSize
+    025. H_JustBelowMagicSize
+    026. H_AtLeast_0_5ct
+    027. H_AtLeast_0_75ct
+    028. H_AtLeast_1_0ct
+    029. H_AtLeast_1_5ct
+    030. H_AtLeast_2_0ct
+    031. H_ClarityAtSize
+    032. H_ColorAtSize
+    033. H_CutAtSize
+    034. H_PeerRarity
+    035. depth
+    036. table
+    037. x
+    038. y
+    039. z
+    040. cut
+    041. color
+    042. clarity
+    043. H_CaratBand
+
+X_train_valid
+Shape: (45814, 17)
+Rows: 45814
+Columns: 17
+Column names:
+    001. carat
+    002. depth
+    003. table
+    004. x
+    005. y
+    006. z
+    007. REG_FaceArea
+    008. REG_Volume
+    009. REG_AspectRatio
+    010. REG_XYAsymmetry
+    011. REG_DepthToFace
+    012. REG_WeightPerFace
+    013. REG_WeightPerVolume
+    014. REG_TableDepthRatio
+    015. cut
+    016. color
+    017. clarity
+
+best_band_df
+Shape: (5, 12)
+Rows: 5
+Columns: 12
+Column names:
+    001. Price_Band
+    002. Count
+    003. MAE
+    004. Median_AE
+    005. MAPE
+    006. Median_APE
+    007. P90_APE
+    008. Within_10
+    009. Within_20
+    010. Over_30
+    011. Algorithm
+    012. Feature_Set
+
+df
+Shape: (53899, 20)
+Rows: 53899
+Columns: 20
+Column names:
+    001. carat
+    002. cut
+    003. color
+    004. clarity
+    005. depth
+    006. table
+    007. price
+    008. x
+    009. y
+    010. z
+    011. Volume_Proxy
+    012. Carat_Per_Volume
+    013. REG_FaceArea
+    014. REG_Volume
+    015. REG_AspectRatio
+    016. REG_XYAsymmetry
+    017. REG_DepthToFace
+    018. REG_WeightPerFace
+    019. REG_WeightPerVolume
+    020. REG_TableDepthRatio
+
+final_df
+Shape: (2, 9)
+Rows: 2
+Columns: 9
+Column names:
+    001. Algorithm
+    002. Feature_Set
+    003. MAE
+    004. RMSE
+    005. MAPE
+    006. R2
+    007. Median_Error
+    008. Within10
+    009. Within20
+
+importance_df
+Shape: (34, 2)
+Rows: 34
+Columns: 2
+Column names:
+    001. Feature
+    002. Importance
+
+prediction_df
+Shape: (8085, 7)
+Rows: 8085
+Columns: 7
+Column names:
+    001. Actual_Price
+    002. CatBoost_Prediction
+    003. CatBoost_APE
+    004. LightGBM_Prediction
+    005. LightGBM_APE
+    006. ExtraTrees_Prediction
+    007. ExtraTrees_APE
+
+price_band_df
+Shape: (30, 12)
+Rows: 30
+Columns: 12
+Column names:
+    001. Price_Band
+    002. Count
+    003. MAE
+    004. Median_AE
+    005. MAPE
+    006. Median_APE
+    007. P90_APE
+    008. Within_10
+    009. Within_20
+    010. Over_30
+    011. Algorithm
+    012. Feature_Set
+
+price_df
+Shape: (53899, 20)
+Rows: 53899
+Columns: 20
+Column names:
+    001. carat
+    002. cut
+    003. color
+    004. clarity
+    005. depth
+    006. table
+    007. price
+    008. x
+    009. y
+    010. z
+    011. Volume_Proxy
+    012. Carat_Per_Volume
+    013. REG_FaceArea
+    014. REG_Volume
+    015. REG_AspectRatio
+    016. REG_XYAsymmetry
+    017. REG_DepthToFace
+    018. REG_WeightPerFace
+    019. REG_WeightPerVolume
+    020. REG_TableDepthRatio
+
+raw_test
+Shape: (8085, 20)
+Rows: 8085
+Columns: 20
+Column names:
+    001. carat
+    002. cut
+    003. color
+    004. clarity
+    005. depth
+    006. table
+    007. price
+    008. x
+    009. y
+    010. z
+    011. Volume_Proxy
+    012. Carat_Per_Volume
+    013. REG_FaceArea
+    014. REG_Volume
+    015. REG_AspectRatio
+    016. REG_XYAsymmetry
+    017. REG_DepthToFace
+    018. REG_WeightPerFace
+    019. REG_WeightPerVolume
+    020. REG_TableDepthRatio
+
+raw_train
+Shape: (37729, 20)
+Rows: 37729
+Columns: 20
+Column names:
+    001. carat
+    002. cut
+    003. color
+    004. clarity
+    005. depth
+    006. table
+    007. price
+    008. x
+    009. y
+    010. z
+    011. Volume_Proxy
+    012. Carat_Per_Volume
+    013. REG_FaceArea
+    014. REG_Volume
+    015. REG_AspectRatio
+    016. REG_XYAsymmetry
+    017. REG_DepthToFace
+    018. REG_WeightPerFace
+    019. REG_WeightPerVolume
+    020. REG_TableDepthRatio
+
+raw_valid
+Shape: (8085, 20)
+Rows: 8085
+Columns: 20
+Column names:
+    001. carat
+    002. cut
+    003. color
+    004. clarity
+    005. depth
+    006. table
+    007. price
+    008. x
+    009. y
+    010. z
+    011. Volume_Proxy
+    012. Carat_Per_Volume
+    013. REG_FaceArea
+    014. REG_Volume
+    015. REG_AspectRatio
+    016. REG_XYAsymmetry
+    017. REG_DepthToFace
+    018. REG_WeightPerFace
+    019. REG_WeightPerVolume
+    020. REG_TableDepthRatio
+
+results_df
+Shape: (4, 24)
+Rows: 4
+Columns: 24
+Column names:
+    001. Model
+    002. Inputs
+    003. Best_Iteration
+    004. Runtime_Min
+    005. MAE
+    006. Median_AE
+    007. RMSE
+    008. MAPE
+    009. Median_APE
+    010. sMAPE
+    011. WAPE
+    012. R2
+    013. Bias
+    014. P75_APE
+    015. P90_APE
+    016. P95_APE
+    017. P99_APE
+    018. Within_5
+    019. Within_10
+    020. Within_15
+    021. Within_20
+    022. Over_20
+    023. Over_30
+    024. Over_50
+
+rf_band
+Shape: (5, 12)
+Rows: 5
+Columns: 12
+Column names:
+    001. Price_Band
+    002. Count
+    003. MAE
+    004. Median_AE
+    005. MAPE
+    006. Median_APE
+    007. P90_APE
+    008. Within_10
+    009. Within_20
+    010. Over_30
+    011. Algorithm
+    012. Feature_Set
+
+subset
+Shape: (3, 11)
+Rows: 3
+Columns: 11
+Column names:
+    001. Algorithm
+    002. Feature_Set
+    003. Inputs
+    004. MAE
+    005. RMSE
+    006. MAPE
+    007. R2
+    008. Median_Error
+    009. Within10
+    010. Within20
+    011. BestIteration
+
+test_df_metrics
+Shape: (6, 26)
+Rows: 6
+Columns: 26
+Column names:
+    001. Algorithm
+    002. Feature_Set
+    003. Inputs
+    004. MAE
+    005. Median_AE
+    006. MSE
+    007. RMSE
+    008. R2
+    009. MAPE
+    010. Median_APE
+    011. sMAPE
+    012. WAPE
+    013. Bias
+    014. Median_Bias
+    015. NRMSE_Mean
+    016. P75_APE
+    017. P90_APE
+    018. P95_APE
+    019. P99_APE
+    020. Within_5
+    021. Within_10
+    022. Within_15
+    023. Within_20
+    024. Over_20
+    025. Over_30
+    026. Over_50
+
+test_human
+Shape: (8085, 56)
+Rows: 8085
+Columns: 56
+Column names:
+    001. carat
+    002. cut
+    003. color
+    004. clarity
+    005. depth
+    006. table
+    007. price
+    008. x
+    009. y
+    010. z
+    011. Volume_Proxy
+    012. Carat_Per_Volume
+    013. REG_FaceArea
+    014. REG_Volume
+    015. REG_AspectRatio
+    016. REG_XYAsymmetry
+    017. REG_DepthToFace
+    018. REG_WeightPerFace
+    019. REG_WeightPerVolume
+    020. REG_TableDepthRatio
+    021. H_AvgDiameter
+    022. H_FaceArea
+    023. H_FaceDiagonal
+    024. H_Volume
+    025. H_AspectRatio
+    026. H_XYAsymmetryPct
+    027. H_HeightToDiameter
+    028. H_DepthToFace
+    029. H_TableDepthRatio
+    030. H_FaceAreaPerCarat
+    031. H_CaratPerVolume
+    032. H_VolumePerCarat
+    033. H_CutScore
+    034. H_ColorScore
+    035. H_ClarityScore
+    036. H_QualityBundle
+    037. H_CaratBand
+    038. H_DistanceToMagicSize
+    039. H_AbsDistanceToMagicSize
+    040. H_JustAboveMagicSize
+    041. H_JustBelowMagicSize
+    042. H_AtLeast_0_5ct
+    043. H_AtLeast_0_75ct
+    044. H_AtLeast_1_0ct
+    045. H_AtLeast_1_5ct
+    046. H_AtLeast_2_0ct
+    047. H_ExpectedFaceArea
+    048. H_FaceAreaResidualPct
+    049. H_ExpectedVolume
+    050. H_VolumeResidualPct
+    051. H_DepthDeviation
+    052. H_TableDeviation
+    053. H_ClarityAtSize
+    054. H_ColorAtSize
+    055. H_CutAtSize
+    056. H_PeerRarity
+
+test_results_df
+Shape: (8085, 8)
+Rows: 8085
+Columns: 8
+Column names:
+    001. carat
+    002. cut
+    003. color
+    004. clarity
+    005. price
+    006. Predicted_Price
+    007. Absolute_Error
+    008. Percentage_Error
+
+train_human
+Shape: (37729, 56)
+Rows: 37729
+Columns: 56
+Column names:
+    001. carat
+    002. cut
+    003. color
+    004. clarity
+    005. depth
+    006. table
+    007. price
+    008. x
+    009. y
+    010. z
+    011. Volume_Proxy
+    012. Carat_Per_Volume
+    013. REG_FaceArea
+    014. REG_Volume
+    015. REG_AspectRatio
+    016. REG_XYAsymmetry
+    017. REG_DepthToFace
+    018. REG_WeightPerFace
+    019. REG_WeightPerVolume
+    020. REG_TableDepthRatio
+    021. H_AvgDiameter
+    022. H_FaceArea
+    023. H_FaceDiagonal
+    024. H_Volume
+    025. H_AspectRatio
+    026. H_XYAsymmetryPct
+    027. H_HeightToDiameter
+    028. H_DepthToFace
+    029. H_TableDepthRatio
+    030. H_FaceAreaPerCarat
+    031. H_CaratPerVolume
+    032. H_VolumePerCarat
+    033. H_CutScore
+    034. H_ColorScore
+    035. H_ClarityScore
+    036. H_QualityBundle
+    037. H_CaratBand
+    038. H_DistanceToMagicSize
+    039. H_AbsDistanceToMagicSize
+    040. H_JustAboveMagicSize
+    041. H_JustBelowMagicSize
+    042. H_AtLeast_0_5ct
+    043. H_AtLeast_0_75ct
+    044. H_AtLeast_1_0ct
+    045. H_AtLeast_1_5ct
+    046. H_AtLeast_2_0ct
+    047. H_ExpectedFaceArea
+    048. H_FaceAreaResidualPct
+    049. H_ExpectedVolume
+    050. H_VolumeResidualPct
+    051. H_DepthDeviation
+    052. H_TableDeviation
+    053. H_ClarityAtSize
+    054. H_ColorAtSize
+    055. H_CutAtSize
+    056. H_PeerRarity
+
+trials_df
+Shape: (30, 9)
+Rows: 30
+Columns: 9
+Column names:
+    001. Trial
+    002. FeatureSet
+    003. MAE
+    004. RMSE
+    005. MAPE
+    006. R2
+    007. Within10
+    008. Within20
+    009. BestIteration
+
+valid_human
+Shape: (8085, 56)
+Rows: 8085
+Columns: 56
+Column names:
+    001. carat
+    002. cut
+    003. color
+    004. clarity
+    005. depth
+    006. table
+    007. price
+    008. x
+    009. y
+    010. z
+    011. Volume_Proxy
+    012. Carat_Per_Volume
+    013. REG_FaceArea
+    014. REG_Volume
+    015. REG_AspectRatio
+    016. REG_XYAsymmetry
+    017. REG_DepthToFace
+    018. REG_WeightPerFace
+    019. REG_WeightPerVolume
+    020. REG_TableDepthRatio
+    021. H_AvgDiameter
+    022. H_FaceArea
+    023. H_FaceDiagonal
+    024. H_Volume
+    025. H_AspectRatio
+    026. H_XYAsymmetryPct
+    027. H_HeightToDiameter
+    028. H_DepthToFace
+    029. H_TableDepthRatio
+    030. H_FaceAreaPerCarat
+    031. H_CaratPerVolume
+    032. H_VolumePerCarat
+    033. H_CutScore
+    034. H_ColorScore
+    035. H_ClarityScore
+    036. H_QualityBundle
+    037. H_CaratBand
+    038. H_DistanceToMagicSize
+    039. H_AbsDistanceToMagicSize
+    040. H_JustAboveMagicSize
+    041. H_JustBelowMagicSize
+    042. H_AtLeast_0_5ct
+    043. H_AtLeast_0_75ct
+    044. H_AtLeast_1_0ct
+    045. H_AtLeast_1_5ct
+    046. H_AtLeast_2_0ct
+    047. H_ExpectedFaceArea
+    048. H_FaceAreaResidualPct
+    049. H_ExpectedVolume
+    050. H_VolumeResidualPct
+    051. H_DepthDeviation
+    052. H_TableDeviation
+    053. H_ClarityAtSize
+    054. H_ColorAtSize
+    055. H_CutAtSize
+    056. H_PeerRarity
+
+validation_df
+Shape: (6, 27)
+Rows: 6
+Columns: 27
+Column names:
+    001. Algorithm
+    002. Feature_Set
+    003. Inputs
+    004. MAE
+    005. Median_AE
+    006. MSE
+    007. RMSE
+    008. R2
+    009. MAPE
+    010. Median_APE
+    011. sMAPE
+    012. WAPE
+    013. Bias
+    014. Median_Bias
+    015. NRMSE_Mean
+    016. P75_APE
+    017. P90_APE
+    018. P95_APE
+    019. P99_APE
+    020. Within_5
+    021. Within_10
+    022. Within_15
+    023. Within_20
+    024. Over_20
+    025. Over_30
+    026. Over_50
+    027. Best_Iteration
+
+xgb_band
+Shape: (5, 12)
+Rows: 5
+Columns: 12
+Column names:
+    001. Price_Band
+    002. Count
+    003. MAE
+    004. Median_AE
+    005. MAPE
+    006. Median_APE
+    007. P90_APE
+    008. Within_10
+    009. Within_20
+    010. Over_30
+    011. Algorithm
+    012. Feature_Set
+
+
+==================================================================================================================================
+2. IMPORTANT PRICE-MODEL DATAFRAMES
+==================================================================================================================================
+price_df                  -> (53899, 20)
+raw_train                 -> (37729, 20)
+raw_valid                 -> (8085, 20)
+raw_test                  -> (8085, 20)
+train_human               -> (37729, 56)
+valid_human               -> (8085, 56)
+test_human                -> (8085, 56)
+X_cat_train               -> (37729, 43)
+X_cat_valid               -> (8085, 43)
+X_cat_test                -> (8085, 43)
+X_cat_trainval            -> (45814, 43)
+validation_df             -> (6, 27)
+test_df_metrics           -> (6, 26)
+price_band_df             -> (30, 12)
+results_df                -> (4, 24)
+prediction_df             -> (8085, 7)
+final_train_df            -> NOT CURRENTLY IN MEMORY
+final_valid_df            -> NOT CURRENTLY IN MEMORY
+final_test_df             -> NOT CURRENTLY IN MEMORY
+final_model_df            -> NOT CURRENTLY IN MEMORY
+
+
+==================================================================================================================================
+3. MASTER PRICE DATAFRAME — price_df
+==================================================================================================================================
+Shape: (53899, 20)
+
+Columns:
+01. carat
+02. cut
+03. color
+04. clarity
+05. depth
+06. table
+07. price
+08. x
+09. y
+10. z
+11. Volume_Proxy
+12. Carat_Per_Volume
+13. REG_FaceArea
+14. REG_Volume
+15. REG_AspectRatio
+16. REG_XYAsymmetry
+17. REG_DepthToFace
+18. REG_WeightPerFace
+19. REG_WeightPerVolume
+20. REG_TableDepthRatio
+
+
+==================================================================================================================================
+4. HUMAN-ENGINEERED DATAFRAME — train_human
+==================================================================================================================================
+Shape: (37729, 56)
+
+Columns:
+01. carat
+02. cut
+03. color
+04. clarity
+05. depth
+06. table
+07. price
+08. x
+09. y
+10. z
+11. Volume_Proxy
+12. Carat_Per_Volume
+13. REG_FaceArea
+14. REG_Volume
+15. REG_AspectRatio
+16. REG_XYAsymmetry
+17. REG_DepthToFace
+18. REG_WeightPerFace
+19. REG_WeightPerVolume
+20. REG_TableDepthRatio
+21. H_AvgDiameter
+22. H_FaceArea
+23. H_FaceDiagonal
+24. H_Volume
+25. H_AspectRatio
+26. H_XYAsymmetryPct
+27. H_HeightToDiameter
+28. H_DepthToFace
+29. H_TableDepthRatio
+30. H_FaceAreaPerCarat
+31. H_CaratPerVolume
+32. H_VolumePerCarat
+33. H_CutScore
+34. H_ColorScore
+35. H_ClarityScore
+36. H_QualityBundle
+37. H_CaratBand
+38. H_DistanceToMagicSize
+39. H_AbsDistanceToMagicSize
+40. H_JustAboveMagicSize
+41. H_JustBelowMagicSize
+42. H_AtLeast_0_5ct
+43. H_AtLeast_0_75ct
+44. H_AtLeast_1_0ct
+45. H_AtLeast_1_5ct
+46. H_AtLeast_2_0ct
+47. H_ExpectedFaceArea
+48. H_FaceAreaResidualPct
+49. H_ExpectedVolume
+50. H_VolumeResidualPct
+51. H_DepthDeviation
+52. H_TableDeviation
+53. H_ClarityAtSize
+54. H_ColorAtSize
+55. H_CutAtSize
+56. H_PeerRarity
+
+
+==================================================================================================================================
+5. FEATURE GROUP DEFINITIONS
+==================================================================================================================================
+
+
+--------------------------------------------------------------------------------------------------------------
+BASELINE_NUMERIC
+--------------------------------------------------------------------------------------------------------------
+Feature count: 14
+01. carat
+02. depth
+03. table
+04. x
+05. y
+06. z
+07. REG_FaceArea
+08. REG_Volume
+09. REG_AspectRatio
+10. REG_XYAsymmetry
+11. REG_DepthToFace
+12. REG_WeightPerFace
+13. REG_WeightPerVolume
+14. REG_TableDepthRatio
+
+
+--------------------------------------------------------------------------------------------------------------
+BASELINE_CATEGORICAL
+--------------------------------------------------------------------------------------------------------------
+Feature count: 3
+01. cut
+02. color
+03. clarity
+
+
+--------------------------------------------------------------------------------------------------------------
+HUMAN_NUMERIC
+--------------------------------------------------------------------------------------------------------------
+Feature count: 34
+01. carat
+02. H_CutScore
+03. H_ColorScore
+04. H_ClarityScore
+05. H_QualityBundle
+06. H_AvgDiameter
+07. H_FaceArea
+08. H_FaceDiagonal
+09. H_Volume
+10. H_AspectRatio
+11. H_XYAsymmetryPct
+12. H_HeightToDiameter
+13. H_DepthToFace
+14. H_TableDepthRatio
+15. H_FaceAreaPerCarat
+16. H_CaratPerVolume
+17. H_VolumePerCarat
+18. H_FaceAreaResidualPct
+19. H_VolumeResidualPct
+20. H_DepthDeviation
+21. H_TableDeviation
+22. H_DistanceToMagicSize
+23. H_AbsDistanceToMagicSize
+24. H_JustAboveMagicSize
+25. H_JustBelowMagicSize
+26. H_AtLeast_0_5ct
+27. H_AtLeast_0_75ct
+28. H_AtLeast_1_0ct
+29. H_AtLeast_1_5ct
+30. H_AtLeast_2_0ct
+31. H_ClarityAtSize
+32. H_ColorAtSize
+33. H_CutAtSize
+34. H_PeerRarity
+
+
+--------------------------------------------------------------------------------------------------------------
+HUMAN_CATEGORICAL
+--------------------------------------------------------------------------------------------------------------
+Feature count: 4
+01. cut
+02. color
+03. clarity
+04. H_CaratBand
+
+
+--------------------------------------------------------------------------------------------------------------
+RAW_GEOMETRY
+--------------------------------------------------------------------------------------------------------------
+Feature count: 5
+01. depth
+02. table
+03. x
+04. y
+05. z
+
+
+==================================================================================================================================
+6. THE THREE PRICE FEATURE EXPERIMENTS
+==================================================================================================================================
+
+
+==================================================================================================================================
+EXPERIMENT 1 — CURRENT_BASELINE
+==================================================================================================================================
+Description:
+Original diamond information plus the initial REG physical feature engineering.
+
+Source DataFrames:
+    raw_train / raw_valid / raw_test
+
+
+--------------------------------------------------------------------------------------------------------------
+NUMERIC MODEL FEATURES
+--------------------------------------------------------------------------------------------------------------
+Count: 14
+N01. carat
+N02. depth
+N03. table
+N04. x
+N05. y
+N06. z
+N07. REG_FaceArea
+N08. REG_Volume
+N09. REG_AspectRatio
+N10. REG_XYAsymmetry
+N11. REG_DepthToFace
+N12. REG_WeightPerFace
+N13. REG_WeightPerVolume
+N14. REG_TableDepthRatio
+
+
+--------------------------------------------------------------------------------------------------------------
+CATEGORICAL MODEL FEATURES
+--------------------------------------------------------------------------------------------------------------
+Count: 3
+C01. cut
+C02. color
+C03. clarity
+
+
+--------------------------------------------------------------------------------------------------------------
+ALL PRE-ENCODING MODEL FEATURES
+--------------------------------------------------------------------------------------------------------------
+Total pre-encoding columns: 17
+01. carat
+02. depth
+03. table
+04. x
+05. y
+06. z
+07. REG_FaceArea
+08. REG_Volume
+09. REG_AspectRatio
+10. REG_XYAsymmetry
+11. REG_DepthToFace
+12. REG_WeightPerFace
+13. REG_WeightPerVolume
+14. REG_TableDepthRatio
+15. cut
+16. color
+17. clarity
+
+
+==================================================================================================================================
+EXPERIMENT 2 — HUMAN_ONLY
+==================================================================================================================================
+Description:
+Human-interpretable diamond valuation concepts. Raw x, y, z, depth and table are not directly passed to the model.
+
+Source DataFrames:
+    train_human / valid_human / test_human
+
+
+--------------------------------------------------------------------------------------------------------------
+NUMERIC MODEL FEATURES
+--------------------------------------------------------------------------------------------------------------
+Count: 34
+N01. carat
+N02. H_CutScore
+N03. H_ColorScore
+N04. H_ClarityScore
+N05. H_QualityBundle
+N06. H_AvgDiameter
+N07. H_FaceArea
+N08. H_FaceDiagonal
+N09. H_Volume
+N10. H_AspectRatio
+N11. H_XYAsymmetryPct
+N12. H_HeightToDiameter
+N13. H_DepthToFace
+N14. H_TableDepthRatio
+N15. H_FaceAreaPerCarat
+N16. H_CaratPerVolume
+N17. H_VolumePerCarat
+N18. H_FaceAreaResidualPct
+N19. H_VolumeResidualPct
+N20. H_DepthDeviation
+N21. H_TableDeviation
+N22. H_DistanceToMagicSize
+N23. H_AbsDistanceToMagicSize
+N24. H_JustAboveMagicSize
+N25. H_JustBelowMagicSize
+N26. H_AtLeast_0_5ct
+N27. H_AtLeast_0_75ct
+N28. H_AtLeast_1_0ct
+N29. H_AtLeast_1_5ct
+N30. H_AtLeast_2_0ct
+N31. H_ClarityAtSize
+N32. H_ColorAtSize
+N33. H_CutAtSize
+N34. H_PeerRarity
+
+
+--------------------------------------------------------------------------------------------------------------
+CATEGORICAL MODEL FEATURES
+--------------------------------------------------------------------------------------------------------------
+Count: 4
+C01. cut
+C02. color
+C03. clarity
+C04. H_CaratBand
+
+
+--------------------------------------------------------------------------------------------------------------
+ALL PRE-ENCODING MODEL FEATURES
+--------------------------------------------------------------------------------------------------------------
+Total pre-encoding columns: 38
+01. carat
+02. H_CutScore
+03. H_ColorScore
+04. H_ClarityScore
+05. H_QualityBundle
+06. H_AvgDiameter
+07. H_FaceArea
+08. H_FaceDiagonal
+09. H_Volume
+10. H_AspectRatio
+11. H_XYAsymmetryPct
+12. H_HeightToDiameter
+13. H_DepthToFace
+14. H_TableDepthRatio
+15. H_FaceAreaPerCarat
+16. H_CaratPerVolume
+17. H_VolumePerCarat
+18. H_FaceAreaResidualPct
+19. H_VolumeResidualPct
+20. H_DepthDeviation
+21. H_TableDeviation
+22. H_DistanceToMagicSize
+23. H_AbsDistanceToMagicSize
+24. H_JustAboveMagicSize
+25. H_JustBelowMagicSize
+26. H_AtLeast_0_5ct
+27. H_AtLeast_0_75ct
+28. H_AtLeast_1_0ct
+29. H_AtLeast_1_5ct
+30. H_AtLeast_2_0ct
+31. H_ClarityAtSize
+32. H_ColorAtSize
+33. H_CutAtSize
+34. H_PeerRarity
+35. cut
+36. color
+37. clarity
+38. H_CaratBand
+
+
+==================================================================================================================================
+EXPERIMENT 3 — HUMAN_PLUS_RAW
+==================================================================================================================================
+Description:
+Human-interpretable valuation features combined with the original raw geometric measurements.
+
+Source DataFrames:
+    train_human / valid_human / test_human
+
+
+--------------------------------------------------------------------------------------------------------------
+NUMERIC MODEL FEATURES
+--------------------------------------------------------------------------------------------------------------
+Count: 39
+N01. carat
+N02. H_CutScore
+N03. H_ColorScore
+N04. H_ClarityScore
+N05. H_QualityBundle
+N06. H_AvgDiameter
+N07. H_FaceArea
+N08. H_FaceDiagonal
+N09. H_Volume
+N10. H_AspectRatio
+N11. H_XYAsymmetryPct
+N12. H_HeightToDiameter
+N13. H_DepthToFace
+N14. H_TableDepthRatio
+N15. H_FaceAreaPerCarat
+N16. H_CaratPerVolume
+N17. H_VolumePerCarat
+N18. H_FaceAreaResidualPct
+N19. H_VolumeResidualPct
+N20. H_DepthDeviation
+N21. H_TableDeviation
+N22. H_DistanceToMagicSize
+N23. H_AbsDistanceToMagicSize
+N24. H_JustAboveMagicSize
+N25. H_JustBelowMagicSize
+N26. H_AtLeast_0_5ct
+N27. H_AtLeast_0_75ct
+N28. H_AtLeast_1_0ct
+N29. H_AtLeast_1_5ct
+N30. H_AtLeast_2_0ct
+N31. H_ClarityAtSize
+N32. H_ColorAtSize
+N33. H_CutAtSize
+N34. H_PeerRarity
+N35. depth
+N36. table
+N37. x
+N38. y
+N39. z
+
+
+--------------------------------------------------------------------------------------------------------------
+CATEGORICAL MODEL FEATURES
+--------------------------------------------------------------------------------------------------------------
+Count: 4
+C01. cut
+C02. color
+C03. clarity
+C04. H_CaratBand
+
+
+--------------------------------------------------------------------------------------------------------------
+ALL PRE-ENCODING MODEL FEATURES
+--------------------------------------------------------------------------------------------------------------
+Total pre-encoding columns: 43
+01. carat
+02. H_CutScore
+03. H_ColorScore
+04. H_ClarityScore
+05. H_QualityBundle
+06. H_AvgDiameter
+07. H_FaceArea
+08. H_FaceDiagonal
+09. H_Volume
+10. H_AspectRatio
+11. H_XYAsymmetryPct
+12. H_HeightToDiameter
+13. H_DepthToFace
+14. H_TableDepthRatio
+15. H_FaceAreaPerCarat
+16. H_CaratPerVolume
+17. H_VolumePerCarat
+18. H_FaceAreaResidualPct
+19. H_VolumeResidualPct
+20. H_DepthDeviation
+21. H_TableDeviation
+22. H_DistanceToMagicSize
+23. H_AbsDistanceToMagicSize
+24. H_JustAboveMagicSize
+25. H_JustBelowMagicSize
+26. H_AtLeast_0_5ct
+27. H_AtLeast_0_75ct
+28. H_AtLeast_1_0ct
+29. H_AtLeast_1_5ct
+30. H_AtLeast_2_0ct
+31. H_ClarityAtSize
+32. H_ColorAtSize
+33. H_CutAtSize
+34. H_PeerRarity
+35. depth
+36. table
+37. x
+38. y
+39. z
+40. cut
+41. color
+42. clarity
+43. H_CaratBand
+
+
+==================================================================================================================================
+7. EXACT POST-ENCODING MODEL INPUTS
+==================================================================================================================================
+
+
+--------------------------------------------------------------------------------------------------------------
+CURRENT_BASELINE
+--------------------------------------------------------------------------------------------------------------
+Train matrix:      (37729, 34)
+Validation matrix: (8085, 34)
+Test matrix:       (8085, 34)
+
+Total encoded model inputs: 34
+
+Exact encoded feature names:
+001. numeric__carat
+002. numeric__depth
+003. numeric__table
+004. numeric__x
+005. numeric__y
+006. numeric__z
+007. numeric__REG_FaceArea
+008. numeric__REG_Volume
+009. numeric__REG_AspectRatio
+010. numeric__REG_XYAsymmetry
+011. numeric__REG_DepthToFace
+012. numeric__REG_WeightPerFace
+013. numeric__REG_WeightPerVolume
+014. numeric__REG_TableDepthRatio
+015. categorical__cut_Fair
+016. categorical__cut_Good
+017. categorical__cut_Ideal
+018. categorical__cut_Premium
+019. categorical__cut_Very Good
+020. categorical__color_D
+021. categorical__color_E
+022. categorical__color_F
+023. categorical__color_G
+024. categorical__color_H
+025. categorical__color_I
+026. categorical__color_J
+027. categorical__clarity_I1
+028. categorical__clarity_IF
+029. categorical__clarity_SI1
+030. categorical__clarity_SI2
+031. categorical__clarity_VS1
+032. categorical__clarity_VS2
+033. categorical__clarity_VVS1
+034. categorical__clarity_VVS2
+
+
+--------------------------------------------------------------------------------------------------------------
+HUMAN_ONLY
+--------------------------------------------------------------------------------------------------------------
+Train matrix:      (37729, 62)
+Validation matrix: (8085, 62)
+Test matrix:       (8085, 62)
+
+Total encoded model inputs: 62
+
+Exact encoded feature names:
+001. numeric__carat
+002. numeric__H_CutScore
+003. numeric__H_ColorScore
+004. numeric__H_ClarityScore
+005. numeric__H_QualityBundle
+006. numeric__H_AvgDiameter
+007. numeric__H_FaceArea
+008. numeric__H_FaceDiagonal
+009. numeric__H_Volume
+010. numeric__H_AspectRatio
+011. numeric__H_XYAsymmetryPct
+012. numeric__H_HeightToDiameter
+013. numeric__H_DepthToFace
+014. numeric__H_TableDepthRatio
+015. numeric__H_FaceAreaPerCarat
+016. numeric__H_CaratPerVolume
+017. numeric__H_VolumePerCarat
+018. numeric__H_FaceAreaResidualPct
+019. numeric__H_VolumeResidualPct
+020. numeric__H_DepthDeviation
+021. numeric__H_TableDeviation
+022. numeric__H_DistanceToMagicSize
+023. numeric__H_AbsDistanceToMagicSize
+024. numeric__H_JustAboveMagicSize
+025. numeric__H_JustBelowMagicSize
+026. numeric__H_AtLeast_0_5ct
+027. numeric__H_AtLeast_0_75ct
+028. numeric__H_AtLeast_1_0ct
+029. numeric__H_AtLeast_1_5ct
+030. numeric__H_AtLeast_2_0ct
+031. numeric__H_ClarityAtSize
+032. numeric__H_ColorAtSize
+033. numeric__H_CutAtSize
+034. numeric__H_PeerRarity
+035. categorical__cut_Fair
+036. categorical__cut_Good
+037. categorical__cut_Ideal
+038. categorical__cut_Premium
+039. categorical__cut_Very Good
+040. categorical__color_D
+041. categorical__color_E
+042. categorical__color_F
+043. categorical__color_G
+044. categorical__color_H
+045. categorical__color_I
+046. categorical__color_J
+047. categorical__clarity_I1
+048. categorical__clarity_IF
+049. categorical__clarity_SI1
+050. categorical__clarity_SI2
+051. categorical__clarity_VS1
+052. categorical__clarity_VS2
+053. categorical__clarity_VVS1
+054. categorical__clarity_VVS2
+055. categorical__H_CaratBand_0.50-0.69
+056. categorical__H_CaratBand_0.70-0.89
+057. categorical__H_CaratBand_0.90-0.99
+058. categorical__H_CaratBand_1.00-1.24
+059. categorical__H_CaratBand_1.25-1.49
+060. categorical__H_CaratBand_1.50-1.99
+061. categorical__H_CaratBand_2.00+
+062. categorical__H_CaratBand_<0.50
+
+
+--------------------------------------------------------------------------------------------------------------
+HUMAN_PLUS_RAW
+--------------------------------------------------------------------------------------------------------------
+Train matrix:      (37729, 67)
+Validation matrix: (8085, 67)
+Test matrix:       (8085, 67)
+
+Total encoded model inputs: 67
+
+Exact encoded feature names:
+001. numeric__carat
+002. numeric__H_CutScore
+003. numeric__H_ColorScore
+004. numeric__H_ClarityScore
+005. numeric__H_QualityBundle
+006. numeric__H_AvgDiameter
+007. numeric__H_FaceArea
+008. numeric__H_FaceDiagonal
+009. numeric__H_Volume
+010. numeric__H_AspectRatio
+011. numeric__H_XYAsymmetryPct
+012. numeric__H_HeightToDiameter
+013. numeric__H_DepthToFace
+014. numeric__H_TableDepthRatio
+015. numeric__H_FaceAreaPerCarat
+016. numeric__H_CaratPerVolume
+017. numeric__H_VolumePerCarat
+018. numeric__H_FaceAreaResidualPct
+019. numeric__H_VolumeResidualPct
+020. numeric__H_DepthDeviation
+021. numeric__H_TableDeviation
+022. numeric__H_DistanceToMagicSize
+023. numeric__H_AbsDistanceToMagicSize
+024. numeric__H_JustAboveMagicSize
+025. numeric__H_JustBelowMagicSize
+026. numeric__H_AtLeast_0_5ct
+027. numeric__H_AtLeast_0_75ct
+028. numeric__H_AtLeast_1_0ct
+029. numeric__H_AtLeast_1_5ct
+030. numeric__H_AtLeast_2_0ct
+031. numeric__H_ClarityAtSize
+032. numeric__H_ColorAtSize
+033. numeric__H_CutAtSize
+034. numeric__H_PeerRarity
+035. numeric__depth
+036. numeric__table
+037. numeric__x
+038. numeric__y
+039. numeric__z
+040. categorical__cut_Fair
+041. categorical__cut_Good
+042. categorical__cut_Ideal
+043. categorical__cut_Premium
+044. categorical__cut_Very Good
+045. categorical__color_D
+046. categorical__color_E
+047. categorical__color_F
+048. categorical__color_G
+049. categorical__color_H
+050. categorical__color_I
+051. categorical__color_J
+052. categorical__clarity_I1
+053. categorical__clarity_IF
+054. categorical__clarity_SI1
+055. categorical__clarity_SI2
+056. categorical__clarity_VS1
+057. categorical__clarity_VS2
+058. categorical__clarity_VVS1
+059. categorical__clarity_VVS2
+060. categorical__H_CaratBand_0.50-0.69
+061. categorical__H_CaratBand_0.70-0.89
+062. categorical__H_CaratBand_0.90-0.99
+063. categorical__H_CaratBand_1.00-1.24
+064. categorical__H_CaratBand_1.25-1.49
+065. categorical__H_CaratBand_1.50-1.99
+066. categorical__H_CaratBand_2.00+
+067. categorical__H_CaratBand_<0.50
+
+
+==================================================================================================================================
+8. TRAIN / VALIDATION / TEST SPLIT
+==================================================================================================================================
+raw_train            -> 37,729 observations
+raw_valid            -> 8,085 observations
+raw_test             -> 8,085 observations
+train_human          -> 37,729 observations
+valid_human          -> 8,085 observations
+test_human           -> 8,085 observations
+y_train              -> 37,729 observations
+y_valid              -> 8,085 observations
+y_test               -> 8,085 observations
+
+
+==================================================================================================================================
+9. COMPLETE METRICS — THREE FEATURE EXPERIMENTS
+==================================================================================================================================
+   Algorithm      Feature_Set  Inputs        MAE  Median_AE           MSE       RMSE       R2     MAPE  Median_APE    sMAPE     WAPE      Bias  Median_Bias  NRMSE_Mean   P75_APE   P90_APE   P95_APE   P99_APE  Within_5  Within_10  Within_15  Within_20  Over_20  Over_30  Over_50
+     XGBoost   HUMAN_PLUS_RAW      67 245.459030  87.225037 257677.947849 507.619885 0.983262 5.895496    4.096575 5.839413 6.360077  5.317586     2.432068   13.152915  7.844816 13.203472 17.411894 29.148330 57.872604  82.622140  92.578850  96.524428 3.475572 0.878169 0.074212
+     XGBoost CURRENT_BASELINE      34 248.552053  87.243652 263985.703670 513.795391 0.982852 5.987922    4.167193 5.927758 6.440220  5.652489     1.080322   13.312928  8.024665 13.334881 17.555546 29.431263 56.895485  82.213976  92.442795  96.474954 3.525046 0.915275 0.111317
+RandomForest   HUMAN_PLUS_RAW      67 254.259405  95.495419 274050.055876 523.497904 0.982199 6.483124    4.576262 6.419135 6.588103  8.577763     1.681555   13.564329  8.797925 14.547909 18.592542 31.246024 53.568336  79.690785  90.674088  96.017316 3.982684 1.125541 0.086580
+     XGBoost       HUMAN_ONLY      62 259.998186 107.701843 268976.313674 518.629264 0.982528 7.247107    5.293092 7.181331 6.736801 13.386472     2.109863   13.438178 10.529107 15.734374 19.401937 30.597099 47.854051  73.333333  88.225108  95.559678 4.440322 1.076067 0.086580
+RandomForest CURRENT_BASELINE      34 263.145791  94.853950 295774.232574 543.851296 0.980788 6.587655    4.564909 6.502111 6.818358  7.619240     2.381783   14.091705  8.836651 14.898226 19.384849 33.060135 53.716759  79.146568  90.129870  95.473098 4.526902 1.335807 0.111317
+RandomForest       HUMAN_ONLY      62 264.880666 119.095161 278128.143336 527.378558 0.981934 7.859857    5.468224 7.780332 6.863310  6.349962    -1.495528   13.664881 11.204426 18.880619 22.516712 31.979192 46.691404  71.675943  83.525046  92.047001 7.952999 1.212121 0.123686
+
+
+==================================================================================================================================
+10. METRIC DEFINITIONS
+==================================================================================================================================
+MAE             -> Average absolute dollar error.
+Median_AE       -> Typical dollar error; 50% of predictions have smaller absolute error.
+MSE             -> Mean squared error; strongly penalizes large dollar mistakes.
+RMSE            -> Dollar error metric that penalizes large mistakes more heavily than MAE.
+R2              -> Proportion of price variance explained by the model. Closer to 1 is better.
+MAPE            -> Average absolute percentage difference between prediction and actual price.
+Median_APE      -> Typical absolute percentage error.
+sMAPE           -> Symmetric percentage error based on both actual and predicted price.
+WAPE            -> Total absolute dollar error divided by total actual dollar value.
+Bias            -> Mean actual minus predicted price. Near zero means little systematic bias.
+Median_Bias     -> Median signed prediction error.
+NRMSE_Mean      -> RMSE relative to the average actual price.
+P75_APE         -> 75% of predictions have percentage error below this value.
+P90_APE         -> 90% of predictions have percentage error below this value.
+P95_APE         -> 95% of predictions have percentage error below this value.
+P99_APE         -> 99% of predictions have percentage error below this value.
+Within_5        -> Percentage of predictions within ±5% of actual price.
+Within_10       -> Percentage of predictions within ±10% of actual price.
+Within_15       -> Percentage of predictions within ±15% of actual price.
+Within_20       -> Percentage of predictions within ±20% of actual price.
+Over_20         -> Percentage of predictions with more than 20% error.
+Over_30         -> Percentage of predictions with more than 30% error.
+Over_50         -> Percentage of predictions with more than 50% error.
+
+
+==================================================================================================================================
+11. FINAL MODEL FAMILY COMPARISON
+==================================================================================================================================
+     Model  Inputs  Best_Iteration  Runtime_Min        MAE  Median_AE       RMSE     MAPE  Median_APE    sMAPE     WAPE       R2      Bias  P75_APE   P90_APE   P95_APE   P99_APE  Within_5  Within_10  Within_15  Within_20  Over_20  Over_30  Over_50
+   XGBoost      67             NaN          NaN 245.460000  87.230000 507.620000 5.900000    4.100000 5.840000 6.360000 0.983300  5.320000 7.840000 13.200000 17.410000 29.150000 57.870000  82.620000  92.580000  96.520000 3.480000 0.880000 0.070000
+  CatBoost      43          4998.0    23.987790 247.795825  89.560468 511.715459 5.892079    4.158023 5.846680 6.420626 0.982991 10.487792 7.921133 13.034784 16.795454 29.917947 57.353123  82.473717  93.098330  96.672851 3.327149 0.989487 0.037106
+  LightGBM      67          4274.0     1.656633 247.868387  87.563027 506.619208 5.912712    4.129320 5.864886 6.422506 0.983328  6.982465 8.004950 13.239557 17.231378 28.925310 57.081014  82.448980  92.653061  96.932591 3.067409 0.878169 0.061843
+ExtraTrees      67             NaN     1.117713 253.218082  94.670638 526.866812 6.539027    4.501437 6.471357 6.561122 0.981969  4.010294 8.917930 14.761772 19.717121 31.343298 53.889920  78.293135  90.352505  95.238095 4.761905 1.162647 0.111317
+
+
+==================================================================================================================================
+12. ERROR BY PRICE BAND
+==================================================================================================================================
+Price_Band  Count        MAE  Median_AE      MAPE  Median_APE   P90_APE  Within_10  Within_20  Over_30    Algorithm      Feature_Set
+      <$1K   2227  36.074658  24.732361  5.129740    3.524175 11.707443  86.528963  97.979344 0.224517      XGBoost CURRENT_BASELINE
+   $1K-$3K   2361 110.977273  72.587036  5.934711    4.254125 12.833536  82.719187  96.569250 0.804744      XGBoost CURRENT_BASELINE
+   $3K-$5K   1358 256.865887 183.119141  6.456312    4.636636 14.228422  79.234168  96.097202 1.251841      XGBoost CURRENT_BASELINE
+  $5K-$10K   1375 441.547523 304.055176  6.501169    4.477536 14.051562  79.781818  95.127273 1.527273      XGBoost CURRENT_BASELINE
+     $10K+    764 930.937206 644.779297  6.897624    4.719128 14.883384  77.748691  94.895288 1.570681      XGBoost CURRENT_BASELINE
+      <$1K   2227  43.082112  31.292112  6.243090    4.522847 14.420071  79.928154  96.811855 0.673552 RandomForest CURRENT_BASELINE
+   $1K-$3K   2361 118.287698  77.877762  6.398575    4.477019 14.115226  80.940280  95.637442 1.185938 RandomForest CURRENT_BASELINE
+   $3K-$5K   1358 268.027603 183.158542  6.764359    4.569471 15.457328  77.761414  94.992636 1.546392 RandomForest CURRENT_BASELINE
+  $5K-$10K   1375 470.474203 305.492227  6.943569    4.552635 15.693867  78.181818  94.181818 2.036364 RandomForest CURRENT_BASELINE
+     $10K+    764 970.456925 643.482722  7.221711    4.873581 15.771696  75.523560  94.240838 2.094241 RandomForest CURRENT_BASELINE
+      <$1K   2227  64.478394  58.326355  9.133967    8.339477 17.669451  56.892681  94.566682 0.583745      XGBoost       HUMAN_ONLY
+   $1K-$3K   2361 115.990695  79.054565  6.348092    4.649170 14.123559  80.516730  96.908090 0.847099      XGBoost       HUMAN_ONLY
+   $3K-$5K   1358 259.813020 187.028442  6.538059    4.695638 14.524181  79.160530  95.949926 1.325479      XGBoost       HUMAN_ONLY
+  $5K-$10K   1375 444.585900 300.336914  6.549512    4.470432 14.817417  79.418182  94.836364 1.672727      XGBoost       HUMAN_ONLY
+     $10K+    764 943.070980 660.177246  7.041106    5.084425 15.048019  77.748691  94.895288 1.701571      XGBoost       HUMAN_ONLY
+      <$1K   2227  77.077395  62.679494 10.870825    9.055012 22.113738  53.210597  83.116300 0.673552 RandomForest       HUMAN_ONLY
+   $1K-$3K   2361 122.115923  86.116065  6.746628    5.028382 14.889161  78.991953  96.060991 1.016518 RandomForest       HUMAN_ONLY
+   $3K-$5K   1358 262.217844 176.336796  6.606418    4.297547 15.248062  78.939617  94.918999 1.399116 RandomForest       HUMAN_ONLY
+  $5K-$10K   1375 448.137694 296.318243  6.638660    4.459584 15.408433  79.054545  94.981818 1.963636 RandomForest       HUMAN_ONLY
+     $10K+    764 928.418814 619.980838  6.949153    4.600093 14.923917  76.701571  95.287958 1.701571 RandomForest       HUMAN_ONLY
+      <$1K   2227  35.170833  22.465454  4.999555    3.361690 11.815787  86.169735  97.844634 0.224517      XGBoost   HUMAN_PLUS_RAW
+   $1K-$3K   2361 108.557567  70.116943  5.769962    4.105823 12.979524  84.243964  96.738670 0.762389      XGBoost   HUMAN_PLUS_RAW
+   $3K-$5K   1358 257.336131 183.104614  6.476628    4.639736 14.412936  79.455081  95.876289 1.178203      XGBoost   HUMAN_PLUS_RAW
+  $5K-$10K   1375 438.204451 294.775391  6.475345    4.568025 14.280983  79.563636  95.200000 1.381818      XGBoost   HUMAN_PLUS_RAW
+     $10K+    764 913.498438 621.434570  6.818499    4.874475 14.638128  78.403141  95.549738 1.701571      XGBoost   HUMAN_PLUS_RAW
+      <$1K   2227  45.156470  33.409115  6.485866    4.787964 14.868379  78.491244  96.991468 0.449035 RandomForest   HUMAN_PLUS_RAW
+   $1K-$3K   2361 115.152826  76.745038  6.198174    4.405524 13.874824  81.660313  96.484540 0.889454 RandomForest   HUMAN_PLUS_RAW
+   $3K-$5K   1358 259.320889 172.420626  6.538986    4.319223 14.918318  79.234168  95.360825 1.472754 RandomForest   HUMAN_PLUS_RAW
+  $5K-$10K   1375 448.106148 296.266283  6.626013    4.561089 15.137370  80.000000  94.763636 1.963636 RandomForest   HUMAN_PLUS_RAW
+     $10K+    764 935.790958 646.157283  6.999259    4.892611 14.850490  77.356021  95.157068 1.701571 RandomForest   HUMAN_PLUS_RAW
+
+
+==================================================================================================================================
+13. FINAL WINNING PRICE MODEL
+==================================================================================================================================
+
+Winning feature experiment:
+    EXPERIMENT 3 — HUMAN_PLUS_RAW
+
+Winning algorithm:
+    XGBoost
+
+Encoded model inputs:
+    67
+
+FINAL HELD-OUT TEST PERFORMANCE
+
+MAE:
+    $245.46
+
+Median Absolute Error:
+    $87.23
+
+RMSE:
+    $507.62
+
+MAPE:
+    5.90%
+
+Median APE:
+    4.10%
+
+sMAPE:
+    5.84%
+
+WAPE:
+    6.36%
+
+R²:
+    0.9833
+
+Bias:
+    $5.32
+
+
+ERROR SEVERITY
+
+P75 APE:
+    7.84%
+
+P90 APE:
+    13.20%
+
+P95 APE:
+    17.41%
+
+P99 APE:
+    29.15%
+
+
+ACCURACY BANDS
+
+Within ±5%:
+    57.87%
+
+Within ±10%:
+    82.62%
+
+Within ±15%:
+    92.58%
+
+Within ±20%:
+    96.52%
+
+
+SEVERE ERRORS
+
+Over 20%:
+    3.48%
+
+Over 30%:
+    0.88%
+
+Over 50%:
+    0.07%
+
+
+
+==================================================================================================================================
+14. THREE-EXPERIMENT SUMMARY
+==================================================================================================================================
+
+EXPERIMENT 1 — CURRENT_BASELINE
+--------------------------------
+
+Research question:
+    How accurately can diamond price be predicted using the original
+    attributes and initial physical regression features?
+
+Feature style:
+    Raw + initial engineered physical features
+
+XGBoost test:
+    MAE      = $248.55
+    RMSE     = $513.80
+    MAPE     = 5.99%
+    P95 APE  = 17.56%
+    R²       = 0.9829
+
+Encoded inputs:
+    34
+
+
+
+EXPERIMENT 2 — HUMAN_ONLY
+--------------------------
+
+Research question:
+    Can raw measurements be replaced by human-interpretable
+    valuation concepts?
+
+Feature style:
+    Human valuation / geometry / market features
+
+Raw x, y, z, depth and table:
+    Not directly included.
+
+XGBoost test:
+    MAE      = $260.00
+    RMSE     = $518.63
+    MAPE     = 7.25%
+    P95 APE  = 19.40%
+    R²       = 0.9825
+
+Encoded inputs:
+    62
+
+Conclusion:
+    Human-engineered features alone could not fully replace the
+    original physical measurements.
+
+
+
+EXPERIMENT 3 — HUMAN_PLUS_RAW
+------------------------------
+
+Research question:
+    Do human-interpretable valuation features improve prediction
+    when added on top of the original physical measurements?
+
+Feature style:
+    Human engineered features + original raw geometry.
+
+XGBoost test:
+    MAE      = $245.46
+    RMSE     = $507.62
+    MAPE     = 5.90%
+    P95 APE  = 17.41%
+    R²       = 0.9833
+
+Encoded inputs:
+    67
+
+Conclusion:
+    This was the strongest representation.
+
+    The human-engineered features contained additional useful
+    pricing information, but raw physical measurements still
+    provided complementary information.
+
+
+
+==================================================================================================================================
+15. FINAL ALGORITHM TEST
+==================================================================================================================================
+
+Using HUMAN_PLUS_RAW:
+
+XGBoost
+    MAE:      $245.46
+    RMSE:     $507.62
+    MAPE:     5.90%
+    P95:      17.41%
+    R²:       0.9833
+
+CatBoost
+    MAE:      $247.80
+    RMSE:     $511.72
+    MAPE:     5.89%
+    P95:      16.80%
+    R²:       0.9830
+
+LightGBM
+    MAE:      $247.87
+    RMSE:     $506.62
+    MAPE:     5.91%
+    P95:      17.23%
+    R²:       0.9833
+
+ExtraTrees
+    MAE:      $253.22
+    RMSE:     $526.87
+    MAPE:     6.54%
+    P95:      19.72%
+    R²:       0.9820
+
+
+FINAL DECISION:
+    XGBoost remains the strongest overall model.

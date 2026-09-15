@@ -1,0 +1,7 @@
+# Regression datasets
+
+Price is the target; clarity is an input. Source_Row is the original raw CSV row position, never a feature.
+All split files use the same row assignments. Encoders and human context fit training rows only.
+Historical cleaning preserves duplicates and computes volume limits before splitting.
+Feature CSVs contain selected original-unit features plus price; processed CSVs contain encoded inputs plus price.
+Rerunning the notebook replaces these generated files. manifest.json lists every dataset and statistics path.

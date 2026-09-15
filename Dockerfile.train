@@ -1,0 +1,16 @@
+FROM diamond-project:latest
+
+ENV CUDA_VISIBLE_DEVICES=-1 \
+    NVIDIA_VISIBLE_DEVICES=void \
+    TF_CPP_MIN_LOG_LEVEL=3 \
+    ABSL_MIN_LOG_LEVEL=3
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements-training.txt /tmp/requirements-training.txt
+RUN pip install --no-cache-dir -r /tmp/requirements-training.txt
+
+WORKDIR /workspace
+ENTRYPOINT ["python", "scripts/train_all_models.py", "--inside-docker"]

@@ -1,0 +1,14 @@
+{
+    "feature_set": "G0_RAW_CLARITY",
+    "learning_rate": 0.01898431564785491,
+    "max_depth": 10,
+    "min_child_weight": 11,
+    "subsample": 0.8108402455121476,
+    "colsample_bytree": 0.8314087516230554,
+    "reg_alpha": 0.0017200908570583246,
+    "reg_lambda": 0.40718839386498884,
+    "gamma": 0.003072339007521299,
+    "max_bin": 512,
+    "best_iteration": 1642,
+    "number_of_trees": 1643
+}
