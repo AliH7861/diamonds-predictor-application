@@ -314,32 +314,106 @@ Normal mode shows chat and recommendations. Developer mode uses the same respons
 - Historical Kaggle data may not represent every current market.
 - A hosted frontend depends on the local backend and secure tunnel remaining online.
 
-## 12. Possible improvements
+## 12. Possible Improvements
+
+This project answered the main questions I set out to explore, but it also revealed several areas where additional research and experimentation could improve the system.
 
 ### Classification
 
-- Add certified inclusion or microscope/image features.
-- Evaluate ordinal classification and calibrated confidence.
-- Collect more examples for rare clarity families.
+The clarity classification experiments showed that the features available in the Diamonds dataset provide useful information, but they do not contain everything that determines a professional clarity grade. Physical measurements and engineered geometric features provided some signal, but performance improved substantially when price was included.
+
+With more time, I would:
+
+* **Research additional diamond datasets** to see whether other datasets contain features that are more directly related to clarity, such as inclusion characteristics, grading information, or more detailed quality measurements.
+* **Research the diamond-grading process further** and identify additional features that could realistically be approximated from structured data.
+* **Experiment with more sophisticated classification approaches** rather than stopping with the ANN, Random Forest, and XGBoost models used in this project.
+* **Investigate more advanced feature engineering** based specifically on how clarity is determined, rather than creating additional generic mathematical ratios.
+* Explore whether the five clarity families could be modeled as an **ordered problem**, since I → SI → VS → VVS → IF represents increasing clarity rather than five completely unrelated categories.
+* Investigate whether additional external information could improve the model without relying as heavily on price as a proxy for missing quality information.
+
+The main question for future classification work would be:
+
+> **Can additional domain-specific data or better feature representations recover more of the information that is currently missing from the dataset?**
 
 ### Regression
 
-- Add dated market data and calibrated price intervals.
-- Add SHAP explanations and feature-stability checks.
-- Test smaller hybrid feature subsets.
+The price regression models performed very well on the current dataset, but they mainly learn the pricing relationships contained within that particular dataset.
 
-### Clustering
+Diamond prices in the real market can also be affected by factors that are not represented here.
 
-- Compare Gaussian mixtures, hierarchical clustering, and HDBSCAN.
-- Test soft membership, stability, weighting, and PCA/UMAP views.
-- Study value-driven and quality-driven segments separately.
+With more time, I would:
 
-### Assistant and deployment
+* **Research the diamond industry and pricing process more deeply** to understand what additional factors influence real market prices.
+* Add **market trends and time-based information**, since diamond prices may change across different years and market conditions.
+* Investigate factors such as current demand, supply, certification, retailer differences, natural versus lab-grown diamonds, and other market conditions where suitable data is available.
+* Test the model on **external diamond datasets** to determine whether the relationships learned from this dataset generalize to other markets.
+* Continue experimenting with combinations of raw and engineered features to determine whether the same accuracy can be achieved with a smaller and simpler feature set.
 
-- Add reranking, metadata filtering, query rewriting, and formal answer evaluation.
-- Measure and reduce latency, context size, and token use.
-- Add rate limiting and stronger authentication before wider public access.
-- Move to a persistent cloud backend if continuous availability becomes more important than local inference.
+The next regression question would therefore move beyond:
+
+> **“Can I predict the price in this dataset?”**
+
+toward:
+
+> **“Can I predict a realistic diamond market price when market conditions and external pricing factors are also considered?”**
+
+### Clustering and Buyer Segmentation
+
+K-Means with **K = 3** produced the most useful segmentation among the values tested, but the silhouette score of **0.265** also showed that the clusters still overlap considerably.
+
+One limitation of the current work is that I mainly investigated different values of **K within K-Means**. I did not extensively test whether K-Means itself was the best clustering method for this dataset.
+
+With more time, I would:
+
+* **Compare alternative clustering algorithms** instead of assuming K-Means is the best approach.
+* Investigate methods that can represent overlapping or less regularly shaped groups, rather than requiring every purchase to belong rigidly to one K-Means cluster.
+* Compare whether alternative methods produce clusters with **better separation and more meaningful business interpretations**.
+* Investigate whether the current feature combination causes some dimensions, such as price or diamond size, to influence the segments more strongly than intended.
+* Experiment with clustering **different groups of features separately**, such as value-related features, quality-related features, and physical-size features.
+* Study the three current clusters in greater detail to understand **why certain purchase profiles sit between multiple clusters**.
+* Investigate whether the moderate silhouette score reflects a limitation of K-Means or whether diamond purchasing behaviour genuinely exists on a continuous spectrum without sharply separated groups.
+
+The most important future clustering question would be:
+
+> **Are three overlapping groups genuinely the natural structure of the data, or could a different clustering approach reveal a stronger and more useful segmentation?**
+
+### AI Assistant and RAG
+
+The current assistant uses a hybrid approach because different questions are better handled by different components: structured dataset filtering, machine-learning models, vector retrieval, and the language model.
+
+The architecture works, but it was designed primarily to make the complete system functional. It was **not heavily optimized for token efficiency, retrieval efficiency, or advanced orchestration**.
+
+With more time, I would focus heavily on this area.
+
+I would:
+
+* Improve **query rewriting**, so a user's original question can be converted into a shorter and more precise search or retrieval query before reaching the vector database.
+* Investigate ways to **accomplish the same task with significantly less prompt context**, rather than repeatedly sending unnecessary information to the language model.
+* Store and reuse compact structured information from previous turns instead of repeatedly including large portions of conversation history.
+* Improve retrieval so that only the **smallest amount of relevant evidence** needed to answer the question is placed into the final prompt.
+* Experiment with better chunking and retrieval strategies to reduce irrelevant RAG context.
+* Measure **token usage, retrieval size, response quality, and latency** instead of evaluating the assistant mainly by whether it produces a correct response.
+* Research more sophisticated **routing and orchestration designs** for systems that combine structured data, RAG, ML models, and conversational state.
+* Investigate frameworks such as **LangChain or LangGraph** to determine whether they could simplify routing, multi-step workflows, tool use, and conversation-state management.
+* Compare those frameworks against the current custom implementation rather than assuming that using an orchestration framework automatically produces a better system.
+* Develop a more formal assistant evaluation set containing different types of questions, such as filtering, price prediction, clarity prediction, explanations, recommendations, and multi-turn questions.
+
+The longer-term goal would be to make the assistant **more efficient rather than simply larger**:
+
+> **Retrieve less, send less, reuse useful context, and still produce the same or better answer.**
+
+### Overall Future Direction
+
+The next version of the project would focus less on simply adding more models and more features and more on investigating the limitations discovered during this version.
+
+The main questions I would explore are:
+
+* **Classification:** Can better domain data and more sophisticated features reduce the information gap in clarity prediction?
+* **Regression:** Can market and industry information make price prediction representative of the real diamond market rather than only this dataset?
+* **Clustering:** Is K-Means actually the best representation of purchase behaviour, or can another method find stronger and more interpretable groups?
+* **Assistant:** Can the same hybrid system answer complex questions using substantially less retrieved context and fewer tokens?
+
+These improvements follow directly from the findings and limitations discovered during the project rather than simply adding additional technology for its own sake.
 
 ## Technical documentation
 
