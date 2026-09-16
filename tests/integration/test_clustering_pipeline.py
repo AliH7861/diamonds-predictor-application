@@ -14,7 +14,13 @@ def test_clustering_compares_all_k_values_and_reloads_assignment(tmp_path):
     )
     assert tuple(result["comparison"]["K"]) == CANDIDATE_K
     assert result["selected_k"] in CANDIDATE_K
+    selected_row = result["comparison"].set_index("K").loc[result["selected_k"]]
+    assert bool(selected_row["Quality_Checks_Passed"])
+    assert "Stability_ARI" in result["comparison"]
     artifact = load_segmentation_model(result["artifact"])
+    assert artifact["artifact_version"] == 2
+    assert "BUY_ClarityFamily" in artifact["model_features"]
+    assert not {"x", "y", "z"}.intersection(artifact["model_features"])
     assigned = assign_purchase_segment(artifact, make_diamonds(rows=1).iloc[0].to_dict())
     assert assigned.loc[0, "Cluster"] in range(result["selected_k"])
     assert isinstance(assigned.loc[0, "Buyer_Interpretation"], str)

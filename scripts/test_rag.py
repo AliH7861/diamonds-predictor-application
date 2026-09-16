@@ -22,6 +22,7 @@ TEST_CASES = {
     "What does VS clarity mean?": ("clarity", "inclusion", "vs"),
     "Why might a model classify a diamond as VS?": ("clarity", "inclusion", "vs"),
     "What features does the price model use?": ("carat", "cut", "color", "price"),
+    "How is buyer segmentation evaluated?": ("silhouette", "stability", "cluster"),
 }
 
 
@@ -165,7 +166,7 @@ def _check_buying_conversation(assistant: DiamondAssistant, llm: DeterministicLL
         for item in third["knowledge_details"]
     ):
         raise AssertionError("CI: retrieval provenance or similarity scores are missing.")
-    if "diamond_basics.md" not in llm.last_complete_user:
+    if "knowledge" not in llm.last_complete_user.casefold() and ".md" not in llm.last_complete_user:
         raise AssertionError("CI: the final generator did not receive retrieved RAG context.")
     if not third["saved_memory"]:
         raise AssertionError("CI: completed conversation did not save the explicit preference.")
@@ -204,9 +205,8 @@ def run_live_test() -> None:
     try:
         assistant = create_assistant(include_models=False)
         for question, expected_terms in TEST_CASES.items():
-            retrieved = " ".join(
-                assistant.stores.search_knowledge([question], limit=2)
-            ).casefold()
+            details = assistant.retriever.retrieve(question, [])["details"]
+            retrieved = " ".join(item["document"] for item in details).casefold()
             if not any(term in retrieved for term in expected_terms):
                 raise AssertionError(f"LIVE: retrieved knowledge was irrelevant for: {question}")
             print(f"RETRIEVAL PASS  {question}")

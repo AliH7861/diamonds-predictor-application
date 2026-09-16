@@ -1,10 +1,8 @@
-"""Retrieve a compact set of relevant domain facts from the knowledge store."""
-
-from .schemas import RetrievalCheck
+"""Retrieve a compact, auditable set of relevant domain facts."""
 
 
 class KnowledgeRetriever:
-    """Run scored semantic retrieval and one optional focused second pass."""
+    """Run hybrid retrieval with deterministic topic-aware query expansion."""
 
     def __init__(self, stores, llm, per_query: int = 2):
         self.stores = stores
@@ -20,23 +18,35 @@ class KnowledgeRetriever:
             for query, text in zip(queries, documents)
         ]
 
+    @staticmethod
+    def _queries(question: str, planned: list[str]) -> list[str]:
+        """Build at most two focused searches without another language-model call."""
+        queries = [item.strip() for item in planned if item and item.strip()]
+        if not queries:
+            queries = [question.strip()]
+        lowered = question.casefold()
+        topic_queries = (
+            (("clarity", "inclusion", "vs", "vvs", "if"), "diamond clarity families inclusions grading"),
+            (("cut", "sparkle", "brilliance"), "diamond cut brightness sparkle grades"),
+            (("color", "colour"), "diamond color grades D through J appearance"),
+            (("price", "cost", "value", "budget"), "diamond price value carat trade-offs"),
+            (("cluster", "segment", "buyer"), "buyer segmentation clustering method limitations"),
+            (("model", "ann", "xgboost", "random forest", "feature"), "project model evidence inputs estimates"),
+            (("dataset", "available", "contain", "origin", "certificate"), "dataset fields coverage limitations"),
+        )
+        for terms, expanded in topic_queries:
+            if any(term in lowered for term in terms):
+                queries.append(expanded)
+                break
+        return list(dict.fromkeys(queries))[:2]
+
     def retrieve(self, question: str, queries: list[str]) -> dict:
         """Return deduplicated scored chunks and the searches that produced them."""
-        initial_queries = queries or [question]
+        initial_queries = self._queries(question, queries)
         details = self._search(initial_queries)
-        check = RetrievalCheck()
-        if len(details) < 2:
-            check = RetrievalCheck.from_dict(self.llm.structured(
-                "Return JSON with needs_more_context and at most two extra_queries.",
-                f"Question: {question}\nRetrieved knowledge: {details}",
-            ))
-        if check.needs_more_context and check.extra_queries:
-            extra = self._search(check.extra_queries[:2])
-            by_document = {item["document"]: item for item in details + extra}
-            details = list(by_document.values())
         return {
             "details": details[:6],
             "initial_queries": initial_queries,
-            "extra_queries": check.extra_queries[:2],
-            "needed_second_retrieval": check.needs_more_context,
+            "extra_queries": [],
+            "needed_second_retrieval": False,
         }

@@ -58,9 +58,17 @@ def route_question(question: str, conversation_text: str = "") -> EvidenceRoute:
     )
     continues_search = (
         "saved search preferences:" in text
-        and any(term in current for term in follow_up_terms)
+        and any(
+            re.search(rf"\b{re.escape(term)}\b", current)
+            for term in follow_up_terms
+        )
     )
-    if any(word in current for word in buying_terms) or continues_search:
+    has_buying_term = any(
+        (term == "$" and "$" in current)
+        or (term != "$" and re.search(rf"\b{re.escape(term)}\b", current))
+        for term in buying_terms
+    )
+    if has_buying_term or continues_search:
         needs_explanation = any(
             word in current
             for word in ("explain", "why", "trade-off", "tradeoff", "priorit")

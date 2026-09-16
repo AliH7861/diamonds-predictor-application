@@ -32,7 +32,9 @@ def compact_knowledge(details: list[dict], limit: int = 4) -> list[dict]:
     return [
         {
             "source": item.get("source", "unknown"),
+            "section": item.get("section", "Overview"),
             "similarity": item.get("similarity"),
+            "retrieval_score": item.get("retrieval_score"),
             "fact": str(item.get("document", ""))[:500],
         }
         for item in details[:limit]

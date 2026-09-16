@@ -67,10 +67,12 @@ def main() -> None:
     questions = args.questions or DEFAULT_QUESTIONS
     assistant = create_assistant()
     conversation: list[dict] = []
+    state: dict = {}
     try:
         for question in questions:
-            result = assistant.ask(question, conversation=conversation)
+            result = assistant.ask(question, conversation=conversation, state=state)
             print_result(question, result)
+            state = result.get("conversation_state", state)
             conversation.extend([
                 {"role": "user", "content": question},
                 {"role": "assistant", "content": result["answer"]},

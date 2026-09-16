@@ -10,7 +10,7 @@ cluster label itself as a known customer identity.
 """
 
 import pandas as pd
-from .feature_engineering import CATEGORICAL_FEATURES, NUMERIC_FEATURES
+from .feature_engineering import CATEGORICAL_FEATURES, PROFILE_NUMERIC_FEATURES
 
 def _mode(series: pd.Series) -> str:
     """Return the most common non-missing value in a series."""
@@ -48,10 +48,14 @@ def interpret_cluster(group: pd.DataFrame, overall: pd.DataFrame) -> tuple[str, 
     profile = f"{price_tier}, {size_tier} diamonds; mainly {cut} cut with {clarity} clarity"
 
     # Translate observed cluster characteristics into a cautious buyer-style label.
-    if price_tier == "premium-priced" and size_tier == "larger":
-        buyer = "Luxury-oriented buyer"
-    elif size_tier == "larger" and clarity in {"SI", "I"}:
+    if (
+        size_tier == "larger"
+        and clarity in {"SI", "I"}
+        and cut != "Ideal"
+    ):
         buyer = "Size-focused buyer"
+    elif price_tier == "premium-priced" and size_tier == "larger":
+        buyer = "Luxury-oriented buyer"
     elif clarity in {"VS", "VVS", "IF"} and cut in {"Ideal", "Premium"}:
         buyer = "Quality-focused buyer"
     elif price_tier == "affordable":
@@ -65,6 +69,8 @@ def build_cluster_profiles(frame: pd.DataFrame, labels, k: int) -> dict[str, pd.
     """Create summary, numeric-statistic, categorical-distribution, and labeled cluster tables."""
 
     labeled = frame.copy()
+    if "BUY_ClarityFamily" not in labeled and "clarity" in labeled:
+        labeled["BUY_ClarityFamily"] = labeled["clarity"].map(_quality_family)
     labeled["Cluster"] = labels
 
     summaries = []
@@ -83,12 +89,12 @@ def build_cluster_profiles(frame: pd.DataFrame, labels, k: int) -> dict[str, pd.
             "Price_Min": group["price"].min(), "Price_Max": group["price"].max(),
             "Median_Carat": group["carat"].median(),
             "Main_Cut": _mode(group["cut"]), "Main_Color": _mode(group["color"]),
-            "Main_Clarity": _mode(group["clarity"]),
+            "Main_Clarity": _quality_family(_mode(group["clarity"])),
             "Purchase_Profile": profile, "Buyer_Interpretation": buyer
         })
 
         # Store detailed numeric statistics for every clustering feature.
-        for feature in NUMERIC_FEATURES:
+        for feature in PROFILE_NUMERIC_FEATURES:
             values = group[feature]
 
             numeric_rows.append({

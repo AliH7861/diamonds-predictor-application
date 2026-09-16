@@ -11,9 +11,9 @@ class FakeLLM:
 
     def structured(self, system, user):
         self.structured_calls += 1
-        if self.structured_calls == 1:
+        if "search plan" in system:
             return {"search_dataset": True, "max_price": 10000, "knowledge_queries": ["cut sparkle"]}
-        if self.structured_calls == 2:
+        if "more_context" in system:
             return {"needs_more_context": True, "extra_queries": ["clarity value"]}
         return {"should_save": True, "memory_text": "User prioritizes sparkle."}
 
@@ -59,9 +59,12 @@ class AssistantPipelineTests(unittest.TestCase):
         result = assistant.ask("I prioritize sparkle. Explain options priced at $10,000.")
         self.assertEqual(len(result["matches"]), 3)
         self.assertIn("model_price", result["matches"])
-        self.assertEqual(stores.queries, ["cut sparkle", "clarity value"])
+        self.assertEqual(
+            stores.queries,
+            ["cut sparkle", "diamond cut brightness sparkle grades"],
+        )
         self.assertEqual(stores.saved, ["User prioritizes sparkle."])
-        self.assertTrue(result["needed_second_retrieval"])
+        self.assertFalse(result["needed_second_retrieval"])
         self.assertIn("model_price", llm.final_context)
 
     def test_blank_question_is_rejected_before_any_component_runs(self):

@@ -395,7 +395,9 @@ class DiamondAssistant:
         prompt = build_generation_prompt(question, conversation_text, evidence)
         system_prompt = (
             "Answer as a concise diamond adviser. Use only the supplied compact evidence. "
-            "Explain relevant trade-offs, name supplied knowledge sources when useful, and "
+            "Answer the current question directly before adding useful detail. Do not infer "
+            "preferences that the user did not state. Explain relevant trade-offs, name "
+            "supplied knowledge sources when useful, and "
             "label saved-model outputs as estimates. Describe clarity only with the five "
             "project families I, SI, VS, VVS, and IF; never display numbered subgrades."
         )

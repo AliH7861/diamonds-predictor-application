@@ -32,6 +32,13 @@ def test_router_keeps_greetings_out_of_rag_even_with_saved_preferences():
     assert not route.use_memory
 
 
+def test_buyer_segmentation_question_routes_to_knowledge_not_purchase_search():
+    route = route_question("How is buyer segmentation evaluated?")
+    assert route.intent == "general_knowledge"
+    assert route.use_knowledge
+    assert not route.use_dataset
+
+
 def test_router_selects_structured_similarity_for_comparative_request():
     route = route_question("Find something similar but cheaper.")
     assert route.intent == "similarity_search"

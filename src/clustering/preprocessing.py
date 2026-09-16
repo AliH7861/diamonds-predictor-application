@@ -15,7 +15,7 @@ import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.preprocessing import OneHotEncoder, RobustScaler
 from .feature_engineering import CATEGORICAL_FEATURES, MODEL_FEATURES, NUMERIC_FEATURES, engineer_purchase_features
 
 # Raw columns required before purchase-profile features can be created.
@@ -51,10 +51,10 @@ def load_purchase_profiles(data_path: str | Path) -> pd.DataFrame:
 def create_preprocessor() -> ColumnTransformer:
     """Create the numeric-scaling and categorical-encoding pipeline used by K-Means."""
 
-    # Numeric features are imputed and standardized because K-Means uses Euclidean distance.
+    # Robust scaling limits the influence of extreme market prices and sizes.
     numeric_pipeline = Pipeline([
         ("imputer", SimpleImputer(strategy="median")),
-        ("scaler", StandardScaler())
+        ("scaler", RobustScaler(quantile_range=(10, 90)))
     ])
 
     # Categorical features are imputed and converted into one-hot encoded columns.
@@ -63,10 +63,15 @@ def create_preprocessor() -> ColumnTransformer:
         ("encoder", OneHotEncoder(handle_unknown="ignore", sparse_output=False))
     ])
 
-    return ColumnTransformer([
-        ("numeric", numeric_pipeline, NUMERIC_FEATURES),
-        ("categorical", categorical_pipeline, CATEGORICAL_FEATURES)
-    ])
+    return ColumnTransformer(
+        [
+            ("numeric", numeric_pipeline, NUMERIC_FEATURES),
+            ("categorical", categorical_pipeline, CATEGORICAL_FEATURES),
+        ],
+        # Seventeen one-hot columns would otherwise outweigh the eight numeric
+        # value and geometry measures solely because there are more of them.
+        transformer_weights={"numeric": 1.0, "categorical": 0.5},
+    )
 
 def prepare_clustering_data(data_path: str | Path, sample_rows: int | None = None) -> dict:
     """Prepare the shared purchase-profile matrix used by every K-Means candidate."""

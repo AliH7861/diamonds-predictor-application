@@ -104,7 +104,7 @@ Every prediction path applies `expm1` before returning dollar values.
 | --- | --- |
 | `src/clustering/feature_engineering.py` | Purchase-oriented geometry and value features |
 | `preprocessing.py` | Clean, scale numeric values, encode categories |
-| `evaluation.py` | Silhouette, inertia, balance, separation, selection score |
+| `evaluation.py` | Separation, compactness, stability, balance, and selection checks |
 | `profiling.py` | Original-unit statistics and buyer interpretations |
 | `visualizations.py` | K comparison, sizes, and PCA view |
 | `pipeline.py` | Fit, compare, select, export, and persist |
@@ -118,8 +118,8 @@ Every prediction path applies `expm1` before returning dollar values.
 | `clarification.py` | Parse natural language and request missing fields |
 | `dataset_search.py` | Exact Pandas constraints |
 | `similarity_search.py` | Scaled/encoded structured neighbours |
-| `vector_store.py` | Separate Chroma knowledge and memory collections |
-| `retrieval.py` | Semantic search and optional focused second pass |
+| `vector_store.py` | Heading-aware Chroma knowledge, hybrid reranking, separate memory |
+| `retrieval.py` | Deterministic topic expansion and bounded scored retrieval |
 | `model_evidence.py` | Load classification, regression, and clustering artifacts once and infer |
 | `memory.py` | Retrieve/save explicit preferences |
 | `prompt_builder.py` | Bound and assemble compact evidence |
@@ -285,7 +285,7 @@ docker run --rm diamond-project
 | `models/classification/benchmark_winner/` | Best classification comparison |
 | `models/regression/` | Primary ANN, preprocessing, human context |
 | `models/regression/benchmark_winner/` | Best regression comparison |
-| `models/clustering/` | Selected K-Means pipeline |
+| `models/clustering/` | Versioned K-Means pipeline and validation manifest |
 | `outputs/` | Metrics, profiles, figures, and reports |
 | `vector_db/chroma_v2/` | Local knowledge and preference vectors |
 

@@ -10,7 +10,7 @@ This project uses one structured diamond dataset to classify clarity, predict pr
 | Best clarity benchmark | XGBoost: 86.83% test accuracy; 83.66% Macro F1 |
 | Price regression ANN | $271.15 test MAE; 0.9798 R² |
 | Best price benchmark | XGBoost: $245.44 test MAE; 0.9834 R² |
-| Buyer segmentation | K = 3; silhouette = 0.265 |
+| Buyer segmentation | K = 3; silhouette = 0.186; stability ARI = 0.938 |
 | Assistant | Structured search + saved models + Chroma RAG + local Qwen |
 
 ## Setup
@@ -195,24 +195,24 @@ Human features added meaning but lost exact information when used alone. Combini
 
 ## 7. Buyer segmentation
 
-Each valid diamond is treated as an anonymous purchase profile. Numeric values were standardized because K-Means uses distance; otherwise price values in the thousands would dominate carat near one. Categories were one-hot encoded. Every K used the same 31 inputs and seed.
+Each valid diamond is treated as an anonymous purchase profile. The rebuilt representation uses log-scaled price, carat, face area, volume, and price per carat; robustly scaled depth, table, and aspect ratio; and weighted one-hot cut, color, and five-family clarity. This avoids repeatedly counting `x/y/z` and prevents 17 category columns from outweighing the eight numeric measures solely because there are more columns.
 
-| K | Silhouette | Inertia | Smallest cluster | Selection score |
-| ---: | ---: | ---: | ---: | ---: |
-| 3 | **0.265** | 366,385.66 | 14.29% | **0.980** |
-| 5 | 0.156 | 322,697.56 | 10.90% | 0.344 |
-| 7 | 0.140 | 293,809.94 | 4.67% | 0.172 |
-| 10 | 0.135 | 262,776.22 | 0.004% | 0.000 |
+| K | Silhouette | Stability ARI | Davies-Bouldin | Smallest cluster | Checks passed | Selection score |
+| ---: | ---: | ---: | ---: | ---: | --- | ---: |
+| 3 | **0.186** | **0.938** | 2.049 | 21.07% | **Yes** | **0.940** |
+| 5 | 0.132 | 0.459 | 2.216 | 12.57% | No | 0.330 |
+| 7 | 0.123 | 0.619 | 2.112 | 0.004% | No | 0.227 |
+| 10 | 0.113 | 0.587 | **1.795** | 0.004% | No | 0.140 |
 
-K = 3 offered the best separation, balance, and interpretation. K = 10 lowered inertia but produced poorer separation and an almost empty group.
+K = 3 was the only candidate to pass separation, repeat-fit stability, minimum-size, and interpretation checks. K = 7 and K = 10 created near-empty clusters, while K = 5, K = 7, and K = 10 were unstable across repeat fits. The complete audit is exported to `outputs/clustering/tables/k_comparison.csv` and `cluster_quality_checks.csv`.
 
 | Cluster | Size | Median price | Median carat | Main cut | Main clarity | Purchase profile | Interpretation |
 | ---: | ---: | ---: | ---: | --- | --- | --- | --- |
-| 0 | 21,199 | $4,220 | 1.00 | Ideal | SI1 | Mid-range, larger diamonds | Size-focused buyer |
-| 1 | 24,892 | $906 | 0.38 | Ideal | VS2 | Affordable, smaller diamonds | Quality-focused buyer |
-| 2 | 7,684 | $11,461.50 | 1.54 | Premium | SI2 | Premium-priced, larger diamonds | Luxury-oriented buyer |
+| 0 | 11,333 | $5,010 | 1.03 | Premium | SI | Premium-priced, larger diamonds | Size-focused buyer |
+| 1 | 24,529 | $899 | 0.38 | Ideal | VS | Affordable, smaller diamonds | Quality-focused buyer |
+| 2 | 17,913 | $5,008 | 1.02 | Ideal | SI | Premium-priced, larger diamonds | Luxury-oriented buyer |
 
-The 0.265 silhouette shows useful but moderate separation. These are broad tendencies; real buyers overlap.
+The 0.186 silhouette shows modest separation, while the 0.938 stability ARI shows that the three-cluster structure is repeatable. These are broad tendencies; real buyers overlap.
 
 ## 8. AI diamond assistant
 
@@ -225,7 +225,7 @@ The assistant lets users ask ordinary questions instead of inspecting tables, no
 | Price estimate | Saved regression ANN |
 | Clarity estimate | Saved classification ANN |
 | Buyer segment | Saved K-Means clustering pipeline |
-| Project/domain explanation | Embeddings + Chroma RAG |
+| Project/domain explanation | Heading-aware hybrid retrieval + Chroma RAG |
 | Current search preferences | Compact structured conversation state |
 | Durable preferences | Separate vector memory collection |
 | Natural response | Local Qwen through Ollama |
@@ -245,7 +245,7 @@ flowchart LR
     H --> I[Local Qwen answer]
 ```
 
-Deterministic tools perform calculations and filtering. Embeddings retrieve semantic knowledge. The LLM explains bounded evidence rather than memorizing 53,000 rows or inventing predictions.
+Deterministic tools perform calculations and filtering. RAG uses six focused knowledge documents, heading-aware chunks, embeddings, lexical reranking, and deterministic topic expansion. The LLM explains bounded evidence rather than memorizing 53,000 rows or inventing predictions. Greetings and direct dataset operations skip RAG entirely.
 Exact count requests use Pandas and return directly without an embedding or LLM call. Each chat
 passes only its compact filters and latest exchange instead of repeatedly sending the full history.
 
@@ -365,7 +365,7 @@ toward:
 
 ### Clustering and Buyer Segmentation
 
-K-Means with **K = 3** produced the most useful segmentation among the values tested, but the silhouette score of **0.265** also showed that the clusters still overlap considerably.
+K-Means with **K = 3** produced the most useful segmentation among the values tested. Its **0.186 silhouette** shows that the groups overlap, while its **0.938 stability ARI** shows that repeated fits recover a similar structure.
 
 One limitation of the current work is that I mainly investigated different values of **K within K-Means**. I did not extensively test whether K-Means itself was the best clustering method for this dataset.
 
