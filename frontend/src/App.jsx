@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { checkHealth, streamChat } from "./api";
+import { streamChat } from "./api";
 
 const STORAGE_KEY = "diamond-react-conversations-v1";
 
@@ -10,13 +10,9 @@ function Icon({ name, size = 22 }) {
     plus: <><path d="M12 5v14"/><path d="M5 12h14"/></>,
     trash: <><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></>,
     chat: <><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"/></>,
-    chart: <><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></>,
-    book: <><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5Z"/><path d="M4 6.5v13"/></>,
     sun: <><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></>,
     moon: <path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/>,
     diamond: <><path d="m3 8 4-5h10l4 5-9 13Z"/><path d="m3 8 9 5 9-5M7 3l5 10 5-10"/></>,
-    paperclip: <path d="m21.4 11.6-8.9 8.9a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 1 1 5.7 5.7l-9.2 9.2a2 2 0 1 1-2.8-2.8l8.5-8.5"/>,
-    arrow: <><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></>,
   };
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -97,7 +93,6 @@ export default function App() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem("diamond-theme") || "dark");
-  const [backend, setBackend] = useState("checking");
   const endRef = useRef(null);
 
   const active = useMemo(
@@ -113,10 +108,6 @@ export default function App() {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem("diamond-theme", theme);
   }, [theme]);
-
-  useEffect(() => {
-    checkHealth().then(() => setBackend("online")).catch(() => setBackend("offline"));
-  }, []);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -200,7 +191,6 @@ export default function App() {
             : message
         )),
       }));
-      setBackend("offline");
     } finally {
       setSending(false);
     }
@@ -208,23 +198,17 @@ export default function App() {
 
   return (
     <div className="page-shell">
-      <div className="browser-frame">
-        <div className="browser-bar" aria-hidden="true">
-          <div className="traffic-lights"><i/><i/><i/></div>
-          <div className="browser-controls">‹ <span>›</span></div>
-          <div className="address-bar"><span className="lock">◆</span> diamondspredictor.com</div>
-          <button className="theme-button" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label="Switch color theme">
-            <Icon name={theme === "dark" ? "sun" : "moon"} size={18}/>
-          </button>
-        </div>
-
+      <div className="app-shell">
         <header className="app-header">
           <DiamondMark/>
           <div>
             <h1>Diamonds Predictor Application</h1>
             <p>Dataset and model research assistant</p>
           </div>
-          <span className={`status status--${backend}`}><i/>{backend === "online" ? "Local backend" : backend}</span>
+          <button className="theme-button" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label="Switch color theme">
+            <Icon name={theme === "dark" ? "sun" : "moon"} size={18}/>
+            <span>{theme === "dark" ? "Light" : "Dark"}</span>
+          </button>
         </header>
 
         <div className="workspace">
@@ -255,14 +239,6 @@ export default function App() {
                 <p className="eyebrow">Intelligent diamond research</p>
                 <h2>Accurate Insights.<br/>Brighter Decisions.</h2>
                 <p className="hero-copy">Compare real diamonds, understand quality trade-offs, and make a confident decision with grounded model evidence.</p>
-                <div className="quick-actions">
-                  <button onClick={() => setInput("Estimate a diamond price from its characteristics.")}>
-                    <span><Icon name="chart"/></span><div><strong>Prediction Tool</strong><small>Use the saved price and clarity models</small></div><Icon name="arrow"/>
-                  </button>
-                  <button onClick={() => setInput("Explain how diamond cut, color, clarity, and carat affect value.")}>
-                    <span><Icon name="book"/></span><div><strong>Knowledge Center</strong><small>Ask grounded diamond questions</small></div><Icon name="arrow"/>
-                  </button>
-                </div>
               </section>
             ) : (
               <div className="message-list">
@@ -281,7 +257,6 @@ export default function App() {
             )}
 
             <form className="composer" onSubmit={submit}>
-              <button type="button" className="attach-button" aria-label="Attachments will be added later"><Icon name="paperclip" size={20}/></button>
               <input value={input} onChange={(event) => setInput(event.target.value)} placeholder="Ask about a diamond, price, quality, or model result..." aria-label="Message"/>
               <button className="send-button" type="submit" disabled={!input.trim() || sending} aria-label="Send message"><Icon name="send" size={20}/></button>
             </form>
