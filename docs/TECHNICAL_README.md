@@ -132,7 +132,23 @@ Every prediction path applies `expm1` before returning dollar values.
 | `ui.py` | Normal and developer Streamlit views |
 | `ui_content.py` | Editable page wording |
 
-## Streamlit modes
+## React frontend
+
+`frontend/` is the maintained browser client. It persists conversation jobs in browser local storage, streams `/chat/stream` NDJSON tokens, carries compact conversation state between turns, and renders dataset recommendations as prose cards.
+
+```powershell
+# Terminal 1
+python -m src.assistant.api --port 8770
+
+# Terminal 2
+cd frontend
+npm install
+npm run dev
+```
+
+The Vite development server proxies `/assistant-api` to port 8770. Direct cross-origin deployments are supported by `DIAMOND_FRONTEND_ORIGINS`, `VITE_ASSISTANT_API_URL`, and the optional shared assistant API token.
+
+## Streamlit fallback modes
 
 ### One-process local mode
 
@@ -180,7 +196,7 @@ DIAMOND_ASSISTANT_API_URL=https://your-tunnel-host.example
 DIAMOND_ASSISTANT_API_TOKEN=the-same-local-secret
 ```
 
-The computer, API, Ollama, and tunnel must stay running. Streamlit Community Cloud can host this Python frontend. Vercel requires a separate supported web frontend.
+The computer, API, Ollama, and tunnel must stay running. The React build can be hosted on Vercel or another static host when `VITE_ASSISTANT_API_URL` points to the authenticated HTTPS backend tunnel.
 
 `requirements-frontend.txt` contains only the packages needed by the separated Streamlit frontend. The client imports the larger local ML/RAG runtime only when `DIAMOND_ASSISTANT_API_URL` is unset.
 

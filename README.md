@@ -249,7 +249,31 @@ Deterministic tools perform calculations and filtering. RAG uses six focused kno
 Exact count requests use Pandas and return directly without an embedding or LLM call. Each chat
 passes only its compact filters and latest exchange instead of repeatedly sending the full history.
 
-### How Streamlit works
+### React frontend
+
+The primary web interface now lives in `frontend/`. It is a Vite/React client with the crystal-blue visual system, browser-local conversation history, compact state, streamed NDJSON responses, and natural-language recommendation cards.
+
+```text
+React :5173 → HTTP /chat/stream → local assistant API :8770 → data/models/Chroma/Ollama
+```
+
+Terminal 1:
+
+```powershell
+python -m src.assistant.api --port 8770
+```
+
+Terminal 2:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Open `http://127.0.0.1:5173`. Vite proxies assistant requests to the local backend during development. A production deployment can set `VITE_ASSISTANT_API_URL` and the optional matching API token.
+
+### Streamlit fallback
 
 **One-process local mode:**
 
@@ -282,7 +306,7 @@ $env:DIAMOND_ASSISTANT_API_TOKEN="choose-a-long-random-token"
 python -m streamlit run app.py
 ```
 
-A hosted Streamlit server cannot reach your computer at `127.0.0.1`. To keep the backend local, expose port 8770 through an authenticated HTTPS tunnel and configure the hosted frontend with that URL and the same token. The computer, API, Ollama, and tunnel must remain running. Streamlit Community Cloud can run the Python frontend; Vercel would require a separate supported web frontend.
+A hosted frontend cannot reach your computer at `127.0.0.1`. To keep inference local, expose port 8770 through an authenticated HTTPS tunnel and configure the React frontend with that URL and the same token. The computer, API, Ollama, and tunnel must remain running.
 
 Normal mode shows chat and recommendations. Developer mode uses the same response but also shows routing, filters, embedding queries, retrieved chunks and scores, model status, memory, and compact evidence.
 

@@ -1,6 +1,7 @@
 """Verify the Streamlit-compatible client can call the separated local backend."""
 
 import threading
+from urllib.request import Request, urlopen
 
 import pandas as pd
 
@@ -50,6 +51,16 @@ def test_http_frontend_backend_round_trip():
         assert "".join(chunks) == "Grounded answer"
         assert streamed["status"] == "answered"
         assert streamed["matches"].iloc[0]["price"] == 5900
+
+        preflight = Request(
+            f"http://127.0.0.1:{server.server_port}/chat/stream",
+            method="OPTIONS",
+            headers={"Origin": "http://localhost:5173"},
+        )
+        with urlopen(preflight, timeout=5) as response:
+            assert response.status == 204
+            assert response.headers["Access-Control-Allow-Origin"] == "http://localhost:5173"
+            assert "Authorization" in response.headers["Access-Control-Allow-Headers"]
     finally:
         server.shutdown()
         server.server_close()

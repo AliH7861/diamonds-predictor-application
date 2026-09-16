@@ -2,6 +2,7 @@
 .venv/
 .env
 .env.*
+!/frontend/.env.example
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -30,6 +31,8 @@ Thumbs.db
 /models/**/*.joblib
 /models/**/*.json
 /vector_db/
+/frontend/node_modules/
+/frontend/dist/
 
 # Local caches
 /kaggle_cache/

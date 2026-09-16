@@ -18,11 +18,28 @@ class AssistantRequestHandler(BaseHTTPRequestHandler):
 
     server_version = "DiamondAssistant/1.0"
 
+    def _cors_origin(self) -> str | None:
+        """Return an allowed browser origin for the separate React frontend."""
+        supplied = self.headers.get("Origin")
+        allowed = getattr(self.server, "allowed_origins", set())
+        if supplied and ("*" in allowed or supplied in allowed):
+            return "*" if "*" in allowed else supplied
+        return None
+
+    def _write_cors_headers(self) -> None:
+        origin = self._cors_origin()
+        if origin:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
+            self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+
     def _write_json(self, status: int, value: dict) -> None:
         payload = json.dumps(value, allow_nan=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(payload)))
+        self._write_cors_headers()
         self.end_headers()
         self.wfile.write(payload)
 
@@ -44,6 +61,13 @@ class AssistantRequestHandler(BaseHTTPRequestHandler):
             self._write_json(404, {"error": "Not found"})
             return
         self._write_json(200, {"status": "ok", "service": "diamond-assistant"})
+
+    def do_OPTIONS(self) -> None:  # noqa: N802
+        """Complete the browser CORS preflight without loading assistant work."""
+        self.send_response(204)
+        self._write_cors_headers()
+        self.send_header("Content-Length", "0")
+        self.end_headers()
 
     def do_POST(self) -> None:  # noqa: N802
         stream_started = False
@@ -73,6 +97,7 @@ class AssistantRequestHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
             self.send_header("Cache-Control", "no-cache")
+            self._write_cors_headers()
             self.end_headers()
             stream_started = True
             result = self.server.assistant.ask(
@@ -98,11 +123,21 @@ class AssistantRequestHandler(BaseHTTPRequestHandler):
         print(f"Assistant API: {format_string % args}")
 
 
-def create_server(assistant, host: str, port: int, token: str | None = None):
+def create_server(
+    assistant,
+    host: str,
+    port: int,
+    token: str | None = None,
+    allowed_origins: set[str] | None = None,
+):
     """Create a testable threaded HTTP server around an assistant instance."""
     server = ThreadingHTTPServer((host, port), AssistantRequestHandler)
     server.assistant = assistant
     server.api_token = token
+    server.allowed_origins = allowed_origins or {
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    }
     return server
 
 
@@ -113,8 +148,18 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=8770)
     args = parser.parse_args()
     token = os.getenv("DIAMOND_ASSISTANT_API_TOKEN") or None
+    allowed_origins = {
+        item.strip()
+        for item in os.getenv(
+            "DIAMOND_FRONTEND_ORIGINS",
+            "http://localhost:5173,http://127.0.0.1:5173",
+        ).split(",")
+        if item.strip()
+    }
     print("Loading dataset, vector index, Ollama clients, and saved models...")
-    server = create_server(create_assistant(), args.host, args.port, token)
+    server = create_server(
+        create_assistant(), args.host, args.port, token, allowed_origins
+    )
     print(f"Assistant backend ready at http://{args.host}:{server.server_port}")
     print("Health: GET /health | Chat: POST /chat")
     try:
