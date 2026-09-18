@@ -56,8 +56,12 @@ class RegressionWorkflowTests(unittest.TestCase):
         self.assertEqual(split_sizes, [126, 27, 27])
         expected = {"CURRENT_BASELINE": 34, "HUMAN_ONLY": 62, "HUMAN_PLUS_RAW": 67}
         for name, columns in expected.items():
-            self.assertEqual(self.prepared["experiments"][name]["matrices"]["train"].shape[1], columns)
-            self.assertTrue(np.isfinite(self.prepared["experiments"][name]["matrices"]["test"]).all())
+            self.assertEqual(
+                self.prepared["experiments"][name]["matrices"]["train"].shape[1], columns
+            )
+            self.assertTrue(
+                np.isfinite(self.prepared["experiments"][name]["matrices"]["test"]).all()
+            )
 
     def test_price_is_target_and_not_a_feature(self):
         for config in FEATURE_SETS.values():
@@ -73,14 +77,20 @@ class RegressionWorkflowTests(unittest.TestCase):
         self.assertGreater(metrics["MAE"], 0)
 
     def test_http_api_and_input_validation(self):
-        request = Request(self.url + "/predict", data=json.dumps(EXAMPLE).encode("utf-8"),
-                          headers={"Content-Type": "application/json"}, method="POST")
+        request = Request(
+            self.url + "/predict",
+            data=json.dumps(EXAMPLE).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
         with urlopen(request, timeout=10) as response:
             result = json.load(response)
         self.assertEqual(result["predictions"], predict_prices(self.loaded, EXAMPLE))
 
         invalid = dict(EXAMPLE, price=2500)
-        request = Request(self.url + "/predict", data=json.dumps(invalid).encode("utf-8"), method="POST")
+        request = Request(
+            self.url + "/predict", data=json.dumps(invalid).encode("utf-8"), method="POST"
+        )
         with self.assertRaises(HTTPError) as error:
             urlopen(request, timeout=10)
         self.assertEqual(error.exception.code, 400)

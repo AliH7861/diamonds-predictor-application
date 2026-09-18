@@ -9,7 +9,12 @@ from urllib.request import Request, urlopen
 class OllamaClient:
     """Call a local Ollama server; no cloud credentials or network service is required."""
 
-    def __init__(self, chat_model="qwen3.5:0.8b", embedding_model="nomic-embed-text", base_url="http://127.0.0.1:11434"):
+    def __init__(
+        self,
+        chat_model="qwen3.5:0.8b",
+        embedding_model="nomic-embed-text",
+        base_url="http://127.0.0.1:11434",
+    ):
         self.chat_model = chat_model
         self.embedding_model = embedding_model
         self.base_url = base_url.rstrip("/")
@@ -37,13 +42,16 @@ class OllamaClient:
 
     def warmup(self) -> None:
         """Load the chat model into memory before the first user question."""
-        self._post("/api/generate", {
-            "model": self.chat_model,
-            "prompt": "",
-            "stream": False,
-            "keep_alive": "30m",
-            "options": {"num_predict": 1},
-        })
+        self._post(
+            "/api/generate",
+            {
+                "model": self.chat_model,
+                "prompt": "",
+                "stream": False,
+                "keep_alive": "30m",
+                "options": {"num_predict": 1},
+            },
+        )
 
     def complete(self, system: str, user: str, on_token=None) -> str:
         """Generate an answer, optionally forwarding each streamed text chunk."""
@@ -54,9 +62,7 @@ class OllamaClient:
             "keep_alive": "30m",
             # Streaming keeps longer answers readable while they are generated.
             "options": {"temperature": 0, "num_predict": 400},
-            "messages": [
-                {"role": "system", "content": system}, {"role": "user", "content": user}
-            ],
+            "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
         }
         if on_token is None:
             result = self._post("/api/chat", payload)
@@ -122,19 +128,23 @@ class OllamaClient:
             "required": list(properties),
             "additionalProperties": False,
         }
-        result = self._post("/api/chat", {
-            "model": self.chat_model,
-            "stream": False,
-            "format": schema,
-            "think": False,
-            "keep_alive": "30m",
-            # The plan schema has several nullable fields. Give the local model enough
-            # output room to close the JSON object even on slower CPU-only machines.
-            "options": {"temperature": 0, "num_predict": 400},
-            "messages": [
-                {"role": "system", "content": system}, {"role": "user", "content": user}
-            ],
-        })
+        result = self._post(
+            "/api/chat",
+            {
+                "model": self.chat_model,
+                "stream": False,
+                "format": schema,
+                "think": False,
+                "keep_alive": "30m",
+                # The plan schema has several nullable fields. Give the local model enough
+                # output room to close the JSON object even on slower CPU-only machines.
+                "options": {"temperature": 0, "num_predict": 400},
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+            },
+        )
         try:
             return json.loads(result["message"]["content"])
         except (KeyError, json.JSONDecodeError) as error:

@@ -34,13 +34,28 @@ def make_diamonds(rows: int = 150, seed: int = 42) -> pd.DataFrame:
     x = diameter * rng.normal(1.0, 0.01, rows)
     y = diameter * rng.normal(1.0, 0.01, rows)
     z = diameter * rng.normal(0.62, 0.01, rows)
-    quality = np.array([{"Fair": 0, "Good": 1, "Very Good": 2, "Premium": 3, "Ideal": 4}[v] for v in cut])
-    grade = np.array([{"I1": 0, "SI2": 1, "SI1": 2, "VS2": 3, "VS1": 4,
-                       "VVS2": 5, "VVS1": 6, "IF": 7}[v] for v in clarity])
+    quality = np.array(
+        [{"Fair": 0, "Good": 1, "Very Good": 2, "Premium": 3, "Ideal": 4}[v] for v in cut]
+    )
+    grade = np.array(
+        [
+            {"I1": 0, "SI2": 1, "SI1": 2, "VS2": 3, "VS1": 4, "VVS2": 5, "VVS1": 6, "IF": 7}[v]
+            for v in clarity
+        ]
+    )
     price = 400 + 2800 * carat**1.45 + 110 * quality + 90 * grade + rng.normal(0, 40, rows)
-    return pd.DataFrame({
-        "Unnamed: 0": np.arange(rows), "carat": carat, "cut": cut, "color": color,
-        "clarity": clarity, "depth": rng.normal(61.5, 1.0, rows),
-        "table": rng.normal(57.0, 1.2, rows), "price": np.maximum(price, 100),
-        "x": x, "y": y, "z": z,
-    })
+    return pd.DataFrame(
+        {
+            "Unnamed: 0": np.arange(rows),
+            "carat": carat,
+            "cut": cut,
+            "color": color,
+            "clarity": clarity,
+            "depth": rng.normal(61.5, 1.0, rows),
+            "table": rng.normal(57.0, 1.2, rows),
+            "price": np.maximum(price, 100),
+            "x": x,
+            "y": y,
+            "z": z,
+        }
+    )

@@ -26,13 +26,22 @@ class KnowledgeRetriever:
             queries = [question.strip()]
         lowered = question.casefold()
         topic_queries = (
-            (("clarity", "inclusion", "vs", "vvs", "if"), "diamond clarity families inclusions grading"),
+            (
+                ("clarity", "inclusion", "vs", "vvs", "if"),
+                "diamond clarity families inclusions grading",
+            ),
             (("cut", "sparkle", "brilliance"), "diamond cut brightness sparkle grades"),
             (("color", "colour"), "diamond color grades D through J appearance"),
             (("price", "cost", "value", "budget"), "diamond price value carat trade-offs"),
             (("cluster", "segment", "buyer"), "buyer segmentation clustering method limitations"),
-            (("model", "ann", "xgboost", "random forest", "feature"), "project model evidence inputs estimates"),
-            (("dataset", "available", "contain", "origin", "certificate"), "dataset fields coverage limitations"),
+            (
+                ("model", "ann", "xgboost", "random forest", "feature"),
+                "project model evidence inputs estimates",
+            ),
+            (
+                ("dataset", "available", "contain", "origin", "certificate"),
+                "dataset fields coverage limitations",
+            ),
         )
         for terms, expanded in topic_queries:
             if any(term in lowered for term in terms):

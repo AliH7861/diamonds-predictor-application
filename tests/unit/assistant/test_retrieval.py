@@ -8,14 +8,16 @@ class RecordingStore:
 
     def search_knowledge_details(self, queries, limit):
         self.queries.extend(queries)
-        return [{
-            "query": queries[0],
-            "source": "02_quality_grades.md",
-            "section": "Clarity",
-            "similarity": 0.8,
-            "retrieval_score": 0.85,
-            "document": "Diamond Quality Grades > Clarity\nVS describes clarity.",
-        }]
+        return [
+            {
+                "query": queries[0],
+                "source": "02_quality_grades.md",
+                "section": "Clarity",
+                "similarity": 0.8,
+                "retrieval_score": 0.85,
+                "document": "Diamond Quality Grades > Clarity\nVS describes clarity.",
+            }
+        ]
 
 
 class NoPlanningLLM:
@@ -24,14 +26,14 @@ class NoPlanningLLM:
 
 
 def test_markdown_chunks_retain_title_and_section():
-    chunks = chunk_markdown(
-        "# Diamond Quality\n\n## Clarity\n\nVS is a clarity family."
-    )
-    assert chunks == [{
-        "title": "Diamond Quality",
-        "section": "Clarity",
-        "document": "Diamond Quality > Clarity\nVS is a clarity family.",
-    }]
+    chunks = chunk_markdown("# Diamond Quality\n\n## Clarity\n\nVS is a clarity family.")
+    assert chunks == [
+        {
+            "title": "Diamond Quality",
+            "section": "Clarity",
+            "document": "Diamond Quality > Clarity\nVS is a clarity family.",
+        }
+    ]
 
 
 def test_retrieval_expands_topic_without_second_llm_call():

@@ -12,7 +12,11 @@ class FakeLLM:
     def structured(self, system, user):
         self.structured_calls += 1
         if "search plan" in system:
-            return {"search_dataset": True, "max_price": 10000, "knowledge_queries": ["cut sparkle"]}
+            return {
+                "search_dataset": True,
+                "max_price": 10000,
+                "knowledge_queries": ["cut sparkle"],
+            }
         if "more_context" in system:
             return {"needs_more_context": True, "extra_queries": ["clarity value"]}
         return {"should_save": True, "memory_text": "User prioritizes sparkle."}
@@ -75,9 +79,7 @@ class AssistantPipelineTests(unittest.TestCase):
     def test_greeting_skips_dataset_rag_models_and_memory(self):
         llm = FakeLLM()
         stores = FakeStores()
-        assistant = DiamondAssistant(
-            llm, DiamondCatalog(make_diamonds()), stores, FakeEnricher()
-        )
+        assistant = DiamondAssistant(llm, DiamondCatalog(make_diamonds()), stores, FakeEnricher())
 
         result = assistant.ask(
             "Hey",
@@ -112,10 +114,7 @@ class AssistantPipelineTests(unittest.TestCase):
         result = assistant.ask("How many VS diamonds are under $10,000?")
 
         expected = len(
-            diamonds[
-                (diamonds["price"] <= 10000)
-                & diamonds["clarity"].str.startswith("VS")
-            ]
+            diamonds[(diamonds["price"] <= 10000) & diamonds["clarity"].str.startswith("VS")]
         )
         self.assertEqual(result["route"]["intent"], "dataset_count")
         self.assertEqual(result["evidence"]["matching_count"], expected)
@@ -139,9 +138,7 @@ class AssistantPipelineTests(unittest.TestCase):
 
     def test_missing_dataset_field_is_rejected_without_generation(self):
         llm = FakeLLM()
-        assistant = DiamondAssistant(
-            llm, DiamondCatalog(make_diamonds(rows=20)), FakeStores()
-        )
+        assistant = DiamondAssistant(llm, DiamondCatalog(make_diamonds(rows=20)), FakeStores())
 
         result = assistant.ask("What country was this diamond mined in?")
 
@@ -151,13 +148,9 @@ class AssistantPipelineTests(unittest.TestCase):
 
     def test_impossible_constraints_do_not_hallucinate_matches(self):
         llm = FakeLLM()
-        assistant = DiamondAssistant(
-            llm, DiamondCatalog(make_diamonds(rows=20)), FakeStores()
-        )
+        assistant = DiamondAssistant(llm, DiamondCatalog(make_diamonds(rows=20)), FakeStores())
 
-        result = assistant.ask(
-            "I want a 20 carat Ideal cut IF clarity diamond under $100."
-        )
+        result = assistant.ask("I want a 20 carat Ideal cut IF clarity diamond under $100.")
 
         self.assertTrue(result["matches"].empty)
         self.assertIn("No diamonds", result["answer"])
@@ -166,13 +159,10 @@ class AssistantPipelineTests(unittest.TestCase):
     def test_simple_recommendation_skips_rag_and_generation(self):
         llm = FakeLLM()
         stores = FakeStores()
-        assistant = DiamondAssistant(
-            llm, DiamondCatalog(make_diamonds(rows=80)), stores
-        )
+        assistant = DiamondAssistant(llm, DiamondCatalog(make_diamonds(rows=80)), stores)
 
         result = assistant.ask(
-            "Find a diamond under 3000 between 0.35 and 0.45 carat; "
-            "I don't care about clarity."
+            "Find a diamond under 3000 between 0.35 and 0.45 carat; I don't care about clarity."
         )
 
         self.assertEqual(result["status"], "answered")

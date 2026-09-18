@@ -54,6 +54,7 @@ class FakeStreamlit:
     def __getattr__(self, name):
         def record(*args, **kwargs):
             self.events.append((name, args[0] if args else kwargs))
+
         return record
 
 
@@ -63,16 +64,27 @@ class FakeAssistant:
             on_token("A tested ")
             on_token("answer.")
         return {
-            "status": "answered", "answer": "A tested answer.",
+            "status": "answered",
+            "answer": "A tested answer.",
             "matches": pd.DataFrame([{"price": 5000}]),
-            "similar_matches": pd.DataFrame(), "route": {"intent": "recommendation"},
-            "plan": {"max_price": 6000}, "initial_queries": ["cut"],
-            "extra_queries": [], "knowledge": ["Cut affects sparkle."],
-            "knowledge_details": [{
-                "source": "diamond_basics.md", "similarity": 0.8,
-                "query": "cut", "document": "Cut affects sparkle.",
-            }],
-            "retrieved_memory": [], "saved_memory": None, "evidence": {}, "trace": [],
+            "similar_matches": pd.DataFrame(),
+            "route": {"intent": "recommendation"},
+            "plan": {"max_price": 6000},
+            "initial_queries": ["cut"],
+            "extra_queries": [],
+            "knowledge": ["Cut affects sparkle."],
+            "knowledge_details": [
+                {
+                    "source": "diamond_basics.md",
+                    "similarity": 0.8,
+                    "query": "cut",
+                    "document": "Cut affects sparkle.",
+                }
+            ],
+            "retrieved_memory": [],
+            "saved_memory": None,
+            "evidence": {},
+            "trace": [],
             "conversation_state": {"max_price": 6000},
         }
 
@@ -105,7 +117,9 @@ class AssistantUITests(unittest.TestCase):
             raise RuntimeError("Ollama offline")
 
         render_app(st, fail)
-        self.assertTrue(any(event[0] == "error" and "Ollama offline" in event[1] for event in st.events))
+        self.assertTrue(
+            any(event[0] == "error" and "Ollama offline" in event[1] for event in st.events)
+        )
 
 
 if __name__ == "__main__":

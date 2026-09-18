@@ -54,32 +54,59 @@ def chunk_markdown(text: str, size: int = 700) -> list[dict]:
         for paragraph in content:
             candidate = f"{current}\n\n{paragraph}".strip()
             if current and len(prefix) + len(candidate) > size:
-                chunks.append({
-                    "title": document_title,
-                    "section": section_title,
-                    "document": prefix + current,
-                })
+                chunks.append(
+                    {
+                        "title": document_title,
+                        "section": section_title,
+                        "document": prefix + current,
+                    }
+                )
                 current = paragraph
             else:
                 current = candidate
         if current:
-            chunks.append({
-                "title": document_title,
-                "section": section_title,
-                "document": prefix + current,
-            })
+            chunks.append(
+                {
+                    "title": document_title,
+                    "section": section_title,
+                    "document": prefix + current,
+                }
+            )
     return chunks
 
 
 def _terms(text: str) -> set[str]:
     """Return useful lowercase terms for transparent lexical reranking."""
     stop = {
-        "a", "an", "and", "are", "as", "at", "be", "for", "from", "how",
-        "i", "in", "is", "it", "me", "my", "of", "on", "or", "the", "this",
-        "to", "what", "which", "with",
+        "a",
+        "an",
+        "and",
+        "are",
+        "as",
+        "at",
+        "be",
+        "for",
+        "from",
+        "how",
+        "i",
+        "in",
+        "is",
+        "it",
+        "me",
+        "my",
+        "of",
+        "on",
+        "or",
+        "the",
+        "this",
+        "to",
+        "what",
+        "which",
+        "with",
     }
     return {
-        token for token in re.findall(r"[a-z0-9]+", text.casefold())
+        token
+        for token in re.findall(r"[a-z0-9]+", text.casefold())
         if len(token) > 1 and token not in stop
     }
 
@@ -123,10 +150,15 @@ class ChromaStores:
             self.knowledge.add(
                 ids=ids,
                 documents=[item["document"] for item in chunks],
-                metadatas=[{
-                    "source": item["source"], "title": item["title"],
-                    "section": item["section"], "version": fingerprint,
-                } for item in chunks],
+                metadatas=[
+                    {
+                        "source": item["source"],
+                        "title": item["title"],
+                        "section": item["section"],
+                        "version": fingerprint,
+                    }
+                    for item in chunks
+                ],
                 embeddings=self.embedder.embed([item["document"] for item in chunks]),
             )
             return len(chunks)
@@ -142,7 +174,8 @@ class ChromaStores:
             return []
         for query, vector in zip(queries, self.embedder.embed(queries)):
             result = self.knowledge.query(
-                query_embeddings=[vector], n_results=limit,
+                query_embeddings=[vector],
+                n_results=limit,
                 include=["documents", "metadatas", "distances"],
             )
             documents = result.get("documents", [[]])[0]
@@ -153,8 +186,7 @@ class ChromaStores:
                 query_terms = _terms(query)
                 document_terms = _terms(document)
                 lexical = (
-                    len(query_terms & document_terms) / len(query_terms)
-                    if query_terms else 0.0
+                    len(query_terms & document_terms) / len(query_terms) if query_terms else 0.0
                 )
                 retrieval_score = 0.75 * similarity + 0.25 * lexical
                 candidate = {
@@ -171,15 +203,17 @@ class ChromaStores:
                     or candidate["retrieval_score"] > found[document]["retrieval_score"]
                 ):
                     found[document] = candidate
-        return sorted(
-            found.values(), key=lambda item: item["retrieval_score"], reverse=True
-        )
+        return sorted(found.values(), key=lambda item: item["retrieval_score"], reverse=True)
 
     def search_memory(self, question: str, limit: int = 4) -> list[str]:
         if not self.memory.count():
             return []
-        result = self.memory.query(query_embeddings=[self.embedder.embed([question])[0]], n_results=limit)
+        result = self.memory.query(
+            query_embeddings=[self.embedder.embed([question])[0]], n_results=limit
+        )
         return result.get("documents", [[]])[0]
 
     def add_memory(self, text: str) -> None:
-        self.memory.add(ids=[str(uuid4())], documents=[text], embeddings=self.embedder.embed([text]))
+        self.memory.add(
+            ids=[str(uuid4())], documents=[text], embeddings=self.embedder.embed([text])
+        )

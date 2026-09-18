@@ -45,7 +45,9 @@ def verify_classification() -> dict:
             bundle["metadata"]["model_name"].split(" - ")[-1],
         )
         results[role] = metrics
-        name = "best_test_metrics.json" if role == "primary" else "benchmark_winner_test_metrics.json"
+        name = (
+            "best_test_metrics.json" if role == "primary" else "benchmark_winner_test_metrics.json"
+        )
         output = PROJECT_ROOT / "outputs" / "classification" / "metrics" / name
         output.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
         print(
@@ -72,13 +74,12 @@ def verify_regression() -> dict:
         run = load_best_model(directory)
         _, metrics = evaluate_on_test(run, prepared)
         results[role] = metrics
-        name = "best_test_metrics.json" if role == "primary" else "benchmark_winner_test_metrics.json"
+        name = (
+            "best_test_metrics.json" if role == "primary" else "benchmark_winner_test_metrics.json"
+        )
         output = PROJECT_ROOT / "outputs" / "regression" / "metrics" / name
         output.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
-        print(
-            f"Regression {role}: MAE=${metrics['MAE']:,.2f}  "
-            f"R2={metrics['R2']:.4f}"
-        )
+        print(f"Regression {role}: MAE=${metrics['MAE']:,.2f}  R2={metrics['R2']:.4f}")
 
     return results
 
@@ -95,25 +96,39 @@ def run_inside_docker() -> None:
 
 def run_with_docker() -> None:
     """Use the training image to load TensorFlow and XGBoost consistently."""
-    if subprocess.run(
-        ["docker", "info"], capture_output=True, text=True, check=False
-    ).returncode != 0:
+    if (
+        subprocess.run(["docker", "info"], capture_output=True, text=True, check=False).returncode
+        != 0
+    ):
         raise SystemExit("Docker Desktop is not running. Start it, then retry.")
-    if subprocess.run(
-        ["docker", "image", "inspect", "diamond-training"],
-        capture_output=True,
-        check=False,
-    ).returncode != 0:
+    if (
+        subprocess.run(
+            ["docker", "image", "inspect", "diamond-training"],
+            capture_output=True,
+            check=False,
+        ).returncode
+        != 0
+    ):
         raise SystemExit(
             "The training image is missing. Run "
             "'python scripts/train_all_models.py --smoke' once, then retry."
         )
     subprocess.run(
         [
-            "docker", "run", "--rm", "--entrypoint", "python",
-            "-e", "CUDA_VISIBLE_DEVICES=-1",
-            "-v", f"{PROJECT_ROOT}:/workspace", "-w", "/workspace",
-            "diamond-training", "scripts/verify_final_metrics.py", "--inside-docker",
+            "docker",
+            "run",
+            "--rm",
+            "--entrypoint",
+            "python",
+            "-e",
+            "CUDA_VISIBLE_DEVICES=-1",
+            "-v",
+            f"{PROJECT_ROOT}:/workspace",
+            "-w",
+            "/workspace",
+            "diamond-training",
+            "scripts/verify_final_metrics.py",
+            "--inside-docker",
         ],
         cwd=PROJECT_ROOT,
         check=True,

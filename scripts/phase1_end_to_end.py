@@ -39,12 +39,28 @@ def run_validation() -> bool:
             return result
 
         step(1, "Dataset loading", lambda: make_diamonds().to_csv(data_path, index=False))
-        classification = step(2, "Classification preprocessing", lambda: prepare_classification_data(data_path))
+        classification = step(
+            2, "Classification preprocessing", lambda: prepare_classification_data(data_path)
+        )
         classification_data = classification["experiments"][1]
-        step(3, "Classification model build", lambda: __import__("src.classification.model", fromlist=["build_ann"]).build_ann(classification_data["X_train"].shape[1]))
-        classification_run = step(4, "Classification training", lambda: train_classification_ann(
-            classification_data["X_train"], classification["y_train"],
-            classification_data["X_valid"], classification["y_valid"], 1))
+        step(
+            3,
+            "Classification model build",
+            lambda: __import__("src.classification.model", fromlist=["build_ann"]).build_ann(
+                classification_data["X_train"].shape[1]
+            ),
+        )
+        classification_run = step(
+            4,
+            "Classification training",
+            lambda: train_classification_ann(
+                classification_data["X_train"],
+                classification["y_train"],
+                classification_data["X_valid"],
+                classification["y_valid"],
+                1,
+            ),
+        )
 
         def classification_reload():
             import tensorflow as tf
@@ -52,19 +68,31 @@ def run_validation() -> bool:
             path = work / "clarity_ann.keras"
             classification_run[0].save(path)
             loaded = tf.keras.models.load_model(path)
-            before = classification_run[0].predict(
-                classification_data["X_valid"][:2], verbose=0
-            )
+            before = classification_run[0].predict(classification_data["X_valid"][:2], verbose=0)
             after = loaded.predict(classification_data["X_valid"][:2], verbose=0)
             np.testing.assert_allclose(after, before, rtol=1e-5, atol=1e-6)
 
         step(5, "Classification save/reload", classification_reload)
         regression = step(6, "Regression preprocessing", lambda: prepare_regression_data(data_path))
         regression_data = regression["experiments"]["CURRENT_BASELINE"]["matrices"]
-        step(7, "Regression model build", lambda: __import__("src.regression.model", fromlist=["build_ann"]).build_ann(regression_data["train"].shape[1]))
-        regression_run = step(8, "Regression training", lambda: train_regression_ann(
-            regression_data["train"], regression["targets"]["train"],
-            regression_data["valid"], regression["targets"]["valid"], 1))
+        step(
+            7,
+            "Regression model build",
+            lambda: __import__("src.regression.model", fromlist=["build_ann"]).build_ann(
+                regression_data["train"].shape[1]
+            ),
+        )
+        regression_run = step(
+            8,
+            "Regression training",
+            lambda: train_regression_ann(
+                regression_data["train"],
+                regression["targets"]["train"],
+                regression_data["valid"],
+                regression["targets"]["valid"],
+                1,
+            ),
+        )
 
         def regression_reload():
             import tensorflow as tf
@@ -77,8 +105,11 @@ def run_validation() -> bool:
             np.testing.assert_allclose(after, before, rtol=1e-5, atol=1e-6)
 
         step(9, "Regression save/reload", regression_reload)
-        step(10, "Metrics generation", lambda: (
-            classification_run[2]["Macro_F1"], regression_run[2]["MAE"]))
+        step(
+            10,
+            "Metrics generation",
+            lambda: (classification_run[2]["Macro_F1"], regression_run[2]["MAE"]),
+        )
 
     print("\nPHASE 1 STATUS: SUCCESS")
     return True

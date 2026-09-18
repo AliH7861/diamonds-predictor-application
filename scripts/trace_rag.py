@@ -73,10 +73,12 @@ def main() -> None:
             result = assistant.ask(question, conversation=conversation, state=state)
             print_result(question, result)
             state = result.get("conversation_state", state)
-            conversation.extend([
-                {"role": "user", "content": question},
-                {"role": "assistant", "content": result["answer"]},
-            ])
+            conversation.extend(
+                [
+                    {"role": "user", "content": question},
+                    {"role": "assistant", "content": result["answer"]},
+                ]
+            )
     finally:
         if hasattr(assistant.stores, "close"):
             assistant.stores.close()

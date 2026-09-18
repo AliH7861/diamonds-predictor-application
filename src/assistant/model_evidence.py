@@ -54,13 +54,17 @@ class ModelEvidenceProvider:
     def enrich(self, matches: pd.DataFrame) -> pd.DataFrame:
         """Run inference only on routed rows; this method never fits a model."""
         result = matches.copy()
-        records = result[["carat", "cut", "color", "clarity", "depth", "table", "x", "y", "z"]].to_dict("records")
+        records = result[
+            ["carat", "cut", "color", "clarity", "depth", "table", "x", "y", "z"]
+        ].to_dict("records")
         if records and self.regressor is not None:
             from src.regression.prediction import predict_prices
 
             prices = predict_prices(self.regressor, records)
             result["model_price"] = [row["predicted_price"] for row in prices]
-            result["price_difference_pct"] = 100 * (result["price"] - result["model_price"]) / result["model_price"]
+            result["price_difference_pct"] = (
+                100 * (result["price"] - result["model_price"]) / result["model_price"]
+            )
         if records and self.classifier is not None:
             from src.classification.prediction import predict_diamonds
 

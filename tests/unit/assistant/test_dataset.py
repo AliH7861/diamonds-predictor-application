@@ -12,8 +12,13 @@ class AssistantDatasetTests(unittest.TestCase):
 
     def test_exact_filters_are_applied_by_pandas(self):
         plan = DiamondQueryPlan(
-            search_dataset=True, max_price=5000, target_carat=1.0,
-            carat_tolerance=0.25, cut="Ideal", clarity="VS", depth=61.5,
+            search_dataset=True,
+            max_price=5000,
+            target_carat=1.0,
+            carat_tolerance=0.25,
+            cut="Ideal",
+            clarity="VS",
+            depth=61.5,
         )
         result = self.catalog.search(plan, limit=20)
         self.assertTrue((result["price"] <= 5000).all())

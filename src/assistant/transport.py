@@ -30,12 +30,12 @@ def _json_value(value: Any) -> Any:
     return value
 
 
-def encode_result(result: dict) -> dict:
+def encode_result(result: dict[str, Any]) -> dict[str, Any]:
     """Encode an assistant result for an HTTP response."""
     return _json_value(result)
 
 
-def decode_result(result: dict) -> dict:
+def decode_result(result: dict[str, Any]) -> dict[str, Any]:
     """Restore transported result rows to DataFrames expected by the UI."""
     decoded = dict(result)
     for key in DATAFRAME_KEYS:
@@ -45,24 +45,26 @@ def decode_result(result: dict) -> dict:
     return decoded
 
 
-def encode_conversation(conversation: list[dict] | None) -> list[dict]:
+def encode_conversation(
+    conversation: list[dict[str, Any]] | None,
+) -> list[dict[str, Any]]:
     """Keep visible chat and compact row evidence needed by similarity follow-ups."""
-    encoded = []
+    encoded: list[dict[str, Any]] = []
     for message in conversation or []:
-        item = {
+        item: dict[str, Any] = {
             "role": str(message.get("role", "user")),
             "content": str(message.get("content", "")),
         }
         result = message.get("result")
         if isinstance(result, dict):
-            item["result"] = {
-                key: _json_value(result.get(key, [])) for key in DATAFRAME_KEYS
-            }
+            item["result"] = {key: _json_value(result.get(key, [])) for key in DATAFRAME_KEYS}
         encoded.append(item)
     return encoded
 
 
-def decode_conversation(conversation: list[dict] | None) -> list[dict]:
+def decode_conversation(
+    conversation: list[dict[str, Any]] | None,
+) -> list[dict[str, Any]]:
     """Restore any earlier row evidence before backend orchestration."""
     decoded = []
     for message in conversation or []:

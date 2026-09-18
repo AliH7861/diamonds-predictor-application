@@ -92,20 +92,48 @@ class DeterministicLLM:
 
 def _small_catalog() -> DiamondCatalog:
     """Create a valid catalog so the CI test remains independent of private data."""
-    return DiamondCatalog(pd.DataFrame([
-        {
-            "carat": 1.0, "cut": "Ideal", "color": "G", "clarity": "VS2",
-            "depth": 61.5, "table": 57.0, "price": 5800, "x": 6.45, "y": 6.43, "z": 3.96,
-        },
-        {
-            "carat": 0.92, "cut": "Ideal", "color": "F", "clarity": "VVS2",
-            "depth": 61.8, "table": 56.0, "price": 5900, "x": 6.25, "y": 6.22, "z": 3.85,
-        },
-        {
-            "carat": 1.1, "cut": "Premium", "color": "H", "clarity": "SI1",
-            "depth": 62.0, "table": 58.0, "price": 5600, "x": 6.60, "y": 6.56, "z": 4.08,
-        },
-    ]))
+    return DiamondCatalog(
+        pd.DataFrame(
+            [
+                {
+                    "carat": 1.0,
+                    "cut": "Ideal",
+                    "color": "G",
+                    "clarity": "VS2",
+                    "depth": 61.5,
+                    "table": 57.0,
+                    "price": 5800,
+                    "x": 6.45,
+                    "y": 6.43,
+                    "z": 3.96,
+                },
+                {
+                    "carat": 0.92,
+                    "cut": "Ideal",
+                    "color": "F",
+                    "clarity": "VVS2",
+                    "depth": 61.8,
+                    "table": 56.0,
+                    "price": 5900,
+                    "x": 6.25,
+                    "y": 6.22,
+                    "z": 3.85,
+                },
+                {
+                    "carat": 1.1,
+                    "cut": "Premium",
+                    "color": "H",
+                    "clarity": "SI1",
+                    "depth": 62.0,
+                    "table": 58.0,
+                    "price": 5600,
+                    "x": 6.60,
+                    "y": 6.56,
+                    "z": 4.08,
+                },
+            ]
+        )
+    )
 
 
 def _check_questions(assistant: DiamondAssistant, label: str) -> None:
@@ -146,10 +174,12 @@ def _check_buying_conversation(assistant: DiamondAssistant, llm: DeterministicLL
         raise AssertionError("CI: clarity priority should require a concrete clarity grade.")
     print("PASS  assistant continues clarification until the priority is concrete")
 
-    conversation.extend([
-        {"role": "user", "content": second_question},
-        {"role": "assistant", "content": second["answer"]},
-    ])
+    conversation.extend(
+        [
+            {"role": "user", "content": second_question},
+            {"role": "assistant", "content": second["answer"]},
+        ]
+    )
     third = assistant.ask(
         "VS2 clarity or better, with an Ideal cut. Explain the trade-offs.",
         conversation=conversation[-2:],
@@ -162,8 +192,7 @@ def _check_buying_conversation(assistant: DiamondAssistant, llm: DeterministicLL
     if not third["knowledge_details"]:
         raise AssertionError("CI: vector retrieval did not return scored chunks.")
     if not all(
-        item["source"] and item["similarity"] is not None
-        for item in third["knowledge_details"]
+        item["source"] and item["similarity"] is not None for item in third["knowledge_details"]
     ):
         raise AssertionError("CI: retrieval provenance or similarity scores are missing.")
     if "knowledge" not in llm.last_complete_user.casefold() and ".md" not in llm.last_complete_user:
@@ -229,7 +258,8 @@ def run_live_test() -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--ci", action="store_true",
+        "--ci",
+        action="store_true",
         help="Use deterministic generation and embeddings while exercising real Chroma",
     )
     args = parser.parse_args()

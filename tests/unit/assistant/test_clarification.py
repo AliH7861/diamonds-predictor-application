@@ -54,10 +54,7 @@ def test_budget_range_and_no_clarity_preference_complete_the_plan():
     assert initial.carat_tolerance == 0.05
     assert not initial.needs_clarification
 
-    conversation = (
-        f"user: {first}\n"
-        f"assistant: {initial.clarifying_question}"
-    )
+    conversation = f"user: {first}\nassistant: {initial.clarifying_question}"
     final = build_buying_plan("I don't care about clarity grade.", conversation)
 
     assert final is not None

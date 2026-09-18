@@ -26,7 +26,11 @@ def create_assistant(include_models: bool = True) -> DiamondAssistant:
     # model when the first question arrives.
     llm.warmup()
     return DiamondAssistant(
-        llm, catalog, stores, models, similarity,
+        llm,
+        catalog,
+        stores,
+        models,
+        similarity,
         top_diamonds=settings.top_diamonds,
         knowledge_per_query=settings.knowledge_per_query,
         memory_limit=settings.memory_limit,

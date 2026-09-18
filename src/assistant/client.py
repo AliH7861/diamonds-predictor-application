@@ -24,11 +24,13 @@ class AssistantAPIClient:
         state: dict | None = None,
     ) -> dict:
         """Send a natural-language turn to the configured local backend."""
-        body = json.dumps({
-            "question": question,
-            "conversation": encode_conversation(conversation),
-            "state": state or {},
-        }).encode("utf-8")
+        body = json.dumps(
+            {
+                "question": question,
+                "conversation": encode_conversation(conversation),
+                "state": state or {},
+            }
+        ).encode("utf-8")
         headers = {"Content-Type": "application/json"}
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"

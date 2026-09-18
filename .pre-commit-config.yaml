@@ -1,0 +1,23 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.7
+    hooks:
+      - id: ruff-check
+        name: Ruff lint
+        args: [--no-fix]
+        types: [python]
+
+      - id: ruff-format
+        name: Ruff format
+        exclude: ^src/(classification|regression|clustering)/
+        types: [python]
+
+  - repo: local
+    hooks:
+      - id: pyright
+        name: Pyright type check
+        entry: pyright
+        language: python
+        additional_dependencies: [pyright==1.1.414]
+        pass_filenames: false
+        types: [python]

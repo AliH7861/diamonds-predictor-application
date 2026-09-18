@@ -29,6 +29,12 @@ jobs:
       - name: Lint
         run: ruff check src tests scripts config.py app.py
 
+      - name: Check formatting
+        run: ruff format --check src/assistant tests scripts config.py app.py
+
+      - name: Type check
+        run: pyright
+
       - name: Build React frontend
         working-directory: frontend
         run: |

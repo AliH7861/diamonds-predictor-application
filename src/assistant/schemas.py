@@ -48,8 +48,16 @@ class DiamondQueryPlan:
         clean["priorities"] = list(clean.get("priorities") or [])
         clean["knowledge_queries"] = list(clean.get("knowledge_queries") or [])
         for key in (
-            "min_price", "max_price", "target_price", "target_carat", "carat_tolerance",
-            "depth", "table", "x", "y", "z",
+            "min_price",
+            "max_price",
+            "target_price",
+            "target_carat",
+            "carat_tolerance",
+            "depth",
+            "table",
+            "x",
+            "y",
+            "z",
         ):
             item = clean.get(key)
             if item is not None:
@@ -60,7 +68,20 @@ class DiamondQueryPlan:
         valid_categories = {
             "cut": {"fair", "good", "very good", "premium", "ideal"},
             "color": set("defghij"),
-            "clarity": {"i", "i1", "si", "si1", "si2", "vs", "vs1", "vs2", "vvs", "vvs1", "vvs2", "if"},
+            "clarity": {
+                "i",
+                "i1",
+                "si",
+                "si1",
+                "si2",
+                "vs",
+                "vs1",
+                "vs2",
+                "vvs",
+                "vvs1",
+                "vvs2",
+                "if",
+            },
         }
         for key, choices in valid_categories.items():
             item = clean.get(key)

@@ -19,14 +19,16 @@ class StructuredSimilaritySearch:
 
     def __init__(self, diamonds: pd.DataFrame):
         self.diamonds = diamonds.copy()
-        self.preprocessor = ColumnTransformer([
-            ("numeric", StandardScaler(), NUMERIC_FEATURES),
-            (
-                "categorical",
-                OneHotEncoder(handle_unknown="ignore", sparse_output=False),
-                CATEGORICAL_FEATURES,
-            ),
-        ])
+        self.preprocessor = ColumnTransformer(
+            [
+                ("numeric", StandardScaler(), NUMERIC_FEATURES),
+                (
+                    "categorical",
+                    OneHotEncoder(handle_unknown="ignore", sparse_output=False),
+                    CATEGORICAL_FEATURES,
+                ),
+            ]
+        )
         self.matrix = self.preprocessor.fit_transform(self.diamonds[FEATURES]).astype(np.float32)
 
     def find(

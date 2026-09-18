@@ -3,14 +3,25 @@
 import argparse
 import hmac
 import json
+import logging
 import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from typing import Any, cast
 
 from .runtime import create_assistant
 from .transport import decode_conversation, encode_result
 
 
 MAX_REQUEST_BYTES = 1_000_000
+LOGGER = logging.getLogger(__name__)
+
+
+class AssistantHTTPServer(ThreadingHTTPServer):
+    """HTTP server carrying the initialized assistant and browser settings."""
+
+    assistant: Any
+    api_token: str | None
+    allowed_origins: set[str]
 
 
 class AssistantRequestHandler(BaseHTTPRequestHandler):
@@ -18,10 +29,15 @@ class AssistantRequestHandler(BaseHTTPRequestHandler):
 
     server_version = "DiamondAssistant/1.0"
 
+    @property
+    def assistant_server(self) -> AssistantHTTPServer:
+        """Expose the server with its application-specific attributes typed."""
+        return cast(AssistantHTTPServer, self.server)
+
     def _cors_origin(self) -> str | None:
         """Return an allowed browser origin for the separate React frontend."""
         supplied = self.headers.get("Origin")
-        allowed = getattr(self.server, "allowed_origins", set())
+        allowed = self.assistant_server.allowed_origins
         if supplied and ("*" in allowed or supplied in allowed):
             return "*" if "*" in allowed else supplied
         return None
@@ -50,7 +66,7 @@ class AssistantRequestHandler(BaseHTTPRequestHandler):
         self.wfile.flush()
 
     def _authorized(self) -> bool:
-        expected = getattr(self.server, "api_token", None)
+        expected = self.assistant_server.api_token
         if not expected:
             return True
         supplied = self.headers.get("Authorization", "")
@@ -88,7 +104,7 @@ class AssistantRequestHandler(BaseHTTPRequestHandler):
             if not isinstance(state, dict):
                 raise ValueError("Conversation state must be a JSON object.")
             if self.path == "/chat":
-                result = self.server.assistant.ask(
+                result = self.assistant_server.assistant.ask(
                     question, conversation=conversation, state=state
                 )
                 self._write_json(200, encode_result(result))
@@ -100,7 +116,7 @@ class AssistantRequestHandler(BaseHTTPRequestHandler):
             self._write_cors_headers()
             self.end_headers()
             stream_started = True
-            result = self.server.assistant.ask(
+            result = self.assistant_server.assistant.ask(
                 question,
                 conversation=conversation,
                 on_token=lambda token: self._write_stream_event("token", token),
@@ -110,6 +126,7 @@ class AssistantRequestHandler(BaseHTTPRequestHandler):
         except (json.JSONDecodeError, TypeError, ValueError) as error:
             self._write_json(400, {"error": str(error)})
         except Exception as error:
+            LOGGER.exception("Assistant request failed")
             if stream_started:
                 try:
                     self._write_stream_event("error", str(error))
@@ -118,9 +135,9 @@ class AssistantRequestHandler(BaseHTTPRequestHandler):
             else:
                 self._write_json(500, {"error": str(error)})
 
-    def log_message(self, format_string: str, *args) -> None:
+    def log_message(self, format_string: str, *args: object) -> None:
         """Keep concise standard HTTP logs in the terminal."""
-        print(f"Assistant API: {format_string % args}")
+        LOGGER.info("HTTP: %s", format_string % args)
 
 
 def create_server(
@@ -131,7 +148,7 @@ def create_server(
     allowed_origins: set[str] | None = None,
 ):
     """Create a testable threaded HTTP server around an assistant instance."""
-    server = ThreadingHTTPServer((host, port), AssistantRequestHandler)
+    server = AssistantHTTPServer((host, port), AssistantRequestHandler)
     server.assistant = assistant
     server.api_token = token
     server.allowed_origins = allowed_origins or {
@@ -143,6 +160,10 @@ def create_server(
 
 def main() -> None:
     """Load local models/RAG once and run the backend until interrupted."""
+    logging.basicConfig(
+        level=os.getenv("DIAMOND_LOG_LEVEL", "INFO").upper(),
+        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    )
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8770)
@@ -156,16 +177,14 @@ def main() -> None:
         ).split(",")
         if item.strip()
     }
-    print("Loading dataset, vector index, Ollama clients, and saved models...")
-    server = create_server(
-        create_assistant(), args.host, args.port, token, allowed_origins
-    )
-    print(f"Assistant backend ready at http://{args.host}:{server.server_port}")
-    print("Health: GET /health | Chat: POST /chat")
+    LOGGER.info("Loading dataset, vector index, Ollama clients, and saved models")
+    server = create_server(create_assistant(), args.host, args.port, token, allowed_origins)
+    LOGGER.info("Assistant backend ready at http://%s:%s", args.host, server.server_port)
+    LOGGER.info("Health: GET /health | Chat: POST /chat")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\nAssistant backend stopped.")
+        LOGGER.info("Assistant backend stopped")
     finally:
         server.server_close()
 

@@ -16,8 +16,7 @@ class DiamondCatalog:
         # Kaggle exports often include the previously saved DataFrame index as
         # ``Unnamed: 0``. It identifies a CSV row, not a diamond characteristic.
         index_columns = [
-            column for column in diamonds.columns
-            if str(column).casefold().startswith("unnamed:")
+            column for column in diamonds.columns if str(column).casefold().startswith("unnamed:")
         ]
         clean = diamonds.drop(columns=index_columns, errors="ignore")
         missing = REQUIRED_COLUMNS - set(clean.columns)
@@ -41,18 +40,26 @@ class DiamondCatalog:
             matches = matches[matches["price"] <= plan.max_price]
         if plan.target_carat is not None:
             tolerance = max(float(plan.carat_tolerance), 0)
-            matches = matches[matches["carat"].between(plan.target_carat - tolerance, plan.target_carat + tolerance)]
+            matches = matches[
+                matches["carat"].between(
+                    plan.target_carat - tolerance, plan.target_carat + tolerance
+                )
+            ]
         for column in ("depth", "table", "x", "y", "z"):
             expected = getattr(plan, column)
             if expected is not None:
                 tolerance = 1.0 if column in {"depth", "table"} else 0.15
-                matches = matches[matches[column].between(expected - tolerance, expected + tolerance)]
+                matches = matches[
+                    matches[column].between(expected - tolerance, expected + tolerance)
+                ]
         for column in ("cut", "color"):
             expected = getattr(plan, column)
             if expected:
                 matches = matches[matches[column].str.casefold() == expected.casefold()]
         if plan.clarity:
-            matches = matches[matches["clarity"].str.casefold().str.startswith(plan.clarity.casefold())]
+            matches = matches[
+                matches["clarity"].str.casefold().str.startswith(plan.clarity.casefold())
+            ]
 
         sort_columns = []
         ascending = []

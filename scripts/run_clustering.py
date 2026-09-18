@@ -9,6 +9,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+
 def run_inside_docker(smoke: bool) -> None:
     """Build the reproducible Linux image and save outputs through a workspace mount."""
     check = subprocess.run(["docker", "info"], capture_output=True, text=True, check=False)
@@ -20,9 +21,21 @@ def run_inside_docker(smoke: bool) -> None:
         check=True,
     )
     command = [
-        "docker", "run", "--rm", "--cpus", "4", "--memory", "8g",
-        "-v", f"{PROJECT_ROOT}:/workspace", "-w", "/workspace",
-        "diamond-project", "python", "scripts/run_clustering.py", "--inside-docker",
+        "docker",
+        "run",
+        "--rm",
+        "--cpus",
+        "4",
+        "--memory",
+        "8g",
+        "-v",
+        f"{PROJECT_ROOT}:/workspace",
+        "-w",
+        "/workspace",
+        "diamond-project",
+        "python",
+        "scripts/run_clustering.py",
+        "--inside-docker",
     ]
     if smoke:
         command.append("--smoke")

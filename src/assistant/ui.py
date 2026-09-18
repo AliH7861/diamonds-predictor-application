@@ -136,7 +136,14 @@ def _render_trace(st, result: dict, expanded: bool = True) -> None:
         st.markdown("#### 6. Similar knowledge chunks")
         details = result.get("knowledge_details", [])
         if details:
-            rows = [{"Source": item["source"], "Similarity": item["similarity"], "Matched query": item["query"]} for item in details]
+            rows = [
+                {
+                    "Source": item["source"],
+                    "Similarity": item["similarity"],
+                    "Matched query": item["query"],
+                }
+                for item in details
+            ]
             st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
             for number, item in enumerate(details, start=1):
                 st.markdown(f"**Context {number} — {item['source']}**")
@@ -157,7 +164,9 @@ def _describe_matches(frame: pd.DataFrame) -> list[str]:
     """Turn ranked dataset rows into concise descriptions for ordinary users."""
     descriptions = []
     for number, (_, row) in enumerate(frame.head(5).iterrows(), start=1):
-        price = f"${float(row['price']):,.0f}" if pd.notna(row.get("price")) else "Price unavailable"
+        price = (
+            f"${float(row['price']):,.0f}" if pd.notna(row.get("price")) else "Price unavailable"
+        )
         traits = []
         if pd.notna(row.get("carat")):
             traits.append(f"{float(row['carat']):.2f} carats")
@@ -167,10 +176,14 @@ def _describe_matches(frame: pd.DataFrame) -> list[str]:
             traits.append(f"{row['color']} color")
         if pd.notna(row.get("clarity")):
             traits.append(f"{clarity_family(row['clarity'])} clarity")
-        sentence = f"{number}. **{price}** — " + (", ".join(traits) or "matching dataset diamond") + "."
+        sentence = (
+            f"{number}. **{price}** — " + (", ".join(traits) or "matching dataset diamond") + "."
+        )
         details = []
         if pd.notna(row.get("similarity_score")):
-            details.append(f"{float(row['similarity_score']) * 100:.0f}% similarity to the reference")
+            details.append(
+                f"{float(row['similarity_score']) * 100:.0f}% similarity to the reference"
+            )
         if pd.notna(row.get("model_price")):
             details.append(f"ANN price estimate ${float(row['model_price']):,.0f}")
         if pd.notna(row.get("buyer_interpretation")):
@@ -228,12 +241,18 @@ def render_app(st, assistant_factory) -> None:
     with history_column:
         st.markdown('<div class="rail-kicker">Research workspace</div>', unsafe_allow_html=True)
         st.markdown('<div class="rail-title">Conversation jobs</div>', unsafe_allow_html=True)
-        st.markdown('<div class="rail-copy">Open an earlier analysis or begin a new one.</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="rail-copy">Open an earlier analysis or begin a new one.</div>',
+            unsafe_allow_html=True,
+        )
         if st.button("New conversation", use_container_width=True, type="primary"):
             _create_session(st)
             st.rerun()
         sessions = st.session_state["chat_sessions"]
-        st.markdown(f'<div class="history-label">History ({len(sessions):02d})</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="history-label">History ({len(sessions):02d})</div>',
+            unsafe_allow_html=True,
+        )
         for session_id, session in reversed(list(sessions.items())):
             label = session["title"]
             if session_id == st.session_state["active_chat_id"]:
@@ -251,14 +270,19 @@ def render_app(st, assistant_factory) -> None:
     messages = active_session["messages"]
 
     with workspace_column:
-        st.markdown('<div class="workspace-kicker">Dataset and model research assistant</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="workspace-kicker">Dataset and model research assistant</div>',
+            unsafe_allow_html=True,
+        )
         st.markdown(f'<h1 class="assistant-title">{APP_TITLE}</h1>', unsafe_allow_html=True)
-        st.markdown(f'<div class="assistant-description">{APP_DESCRIPTION}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="assistant-description">{APP_DESCRIPTION}</div>', unsafe_allow_html=True
+        )
         if not messages:
             st.markdown(
                 '<div class="welcome-panel"><div class="welcome-title">Make a confident diamond decision</div>'
                 '<div class="welcome-copy">Describe your budget, preferred size, and quality priorities. '
-                'The assistant searches real dataset examples and grounds its explanation in retrieved diamond knowledge.</div></div>',
+                "The assistant searches real dataset examples and grounds its explanation in retrieved diamond knowledge.</div></div>",
                 unsafe_allow_html=True,
             )
         for message in messages:

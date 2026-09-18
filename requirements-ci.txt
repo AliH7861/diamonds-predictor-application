@@ -7,3 +7,5 @@ matplotlib
 pytest
 pytest-cov
 ruff
+pyright
+pre-commit

@@ -1,6 +1,5 @@
 """Shared buyer-facing clarity families used by the assistant."""
 
-
 CLARITY_FAMILIES = ("I", "SI", "VS", "VVS", "IF")
 
 

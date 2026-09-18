@@ -16,8 +16,15 @@ from src.regression.prediction import load_best_model as load_regressor  # noqa:
 from src.regression.prediction import predict_prices  # noqa: E402
 
 SAMPLE = {
-    "carat": 1.0, "cut": "Ideal", "color": "G", "clarity": "VS1",
-    "depth": 61.5, "table": 57.0, "x": 6.45, "y": 6.43, "z": 3.96,
+    "carat": 1.0,
+    "cut": "Ideal",
+    "color": "G",
+    "clarity": "VS1",
+    "depth": 61.5,
+    "table": 57.0,
+    "x": 6.45,
+    "y": 6.43,
+    "z": 3.96,
 }
 
 
@@ -42,10 +49,9 @@ def run_checks(models_dir: Path, skip_benchmark: bool, smoke: bool) -> None:
     """Load primary ANN artifacts and the strongest benchmark artifacts."""
     classification_dir = models_dir / "classification"
     regression_dir = models_dir / "regression"
-    production_ready = (
-        (classification_dir / "metadata.json").is_file()
-        and (regression_dir / "pipeline.joblib").is_file()
-    )
+    production_ready = (classification_dir / "metadata.json").is_file() and (
+        regression_dir / "pipeline.joblib"
+    ).is_file()
     if smoke or not production_ready:
         classification_dir /= "smoke_test"
         regression_dir /= "smoke_test"
@@ -72,10 +78,18 @@ def run_checks(models_dir: Path, skip_benchmark: bool, smoke: bool) -> None:
             ("Regression primary ANN", lambda: test_regression(regression_dir)),
         ]
         if not skip_benchmark:
-            checks.extend([
-                ("Classification benchmark", lambda: test_classification(classification_dir / "benchmark_winner")),
-                ("Regression benchmark", lambda: test_regression(regression_dir / "benchmark_winner")),
-            ])
+            checks.extend(
+                [
+                    (
+                        "Classification benchmark",
+                        lambda: test_classification(classification_dir / "benchmark_winner"),
+                    ),
+                    (
+                        "Regression benchmark",
+                        lambda: test_regression(regression_dir / "benchmark_winner"),
+                    ),
+                ]
+            )
     for label, check in checks:
         result = check()
         print(f"{label:.<28} PASS  {json.dumps(result)}")
@@ -84,25 +98,39 @@ def run_checks(models_dir: Path, skip_benchmark: bool, smoke: bool) -> None:
 
 def run_in_docker(skip_benchmark: bool, smoke: bool) -> None:
     """Use the same Linux environment that created the serialized artifacts."""
-    if subprocess.run(
-        ["docker", "info"], capture_output=True, text=True, check=False
-    ).returncode != 0:
+    if (
+        subprocess.run(["docker", "info"], capture_output=True, text=True, check=False).returncode
+        != 0
+    ):
         raise SystemExit("Docker Desktop is not running. Start it, then retry.")
-    if subprocess.run(
-        ["docker", "image", "inspect", "diamond-training"],
-        capture_output=True,
-        check=False,
-    ).returncode != 0:
+    if (
+        subprocess.run(
+            ["docker", "image", "inspect", "diamond-training"],
+            capture_output=True,
+            check=False,
+        ).returncode
+        != 0
+    ):
         subprocess.run(
             [sys.executable, str(PROJECT_ROOT / "scripts" / "train_all_models.py"), "--smoke"],
             cwd=PROJECT_ROOT,
             check=True,
         )
     command = [
-        "docker", "run", "--rm", "--entrypoint", "python",
-        "-e", "CUDA_VISIBLE_DEVICES=-1", "-v", f"{PROJECT_ROOT}:/workspace",
-        "diamond-training", "scripts/test_saved_models.py", "--inside-docker",
-        "--models-dir", "/workspace/models",
+        "docker",
+        "run",
+        "--rm",
+        "--entrypoint",
+        "python",
+        "-e",
+        "CUDA_VISIBLE_DEVICES=-1",
+        "-v",
+        f"{PROJECT_ROOT}:/workspace",
+        "diamond-training",
+        "scripts/test_saved_models.py",
+        "--inside-docker",
+        "--models-dir",
+        "/workspace/models",
     ]
     if skip_benchmark:
         command.append("--skip-benchmark")
@@ -115,7 +143,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--models-dir", type=Path, default=PROJECT_ROOT / "models")
     parser.add_argument(
-        "--skip-benchmark", action="store_true",
+        "--skip-benchmark",
+        action="store_true",
         help="Check only the two primary course ANN models",
     )
     parser.add_argument("--smoke", action="store_true", help="Use saved smoke-test artifacts")

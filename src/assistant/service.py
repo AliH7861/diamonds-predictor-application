@@ -42,8 +42,7 @@ class DiamondAssistant:
         if not conversation:
             return "No earlier conversation."
         text = "\n".join(
-            f"{item.get('role', 'user')}: {item.get('content', '')}"
-            for item in conversation[-2:]
+            f"{item.get('role', 'user')}: {item.get('content', '')}" for item in conversation[-2:]
         )
         return text[-1600:]
 
@@ -61,8 +60,7 @@ class DiamondAssistant:
         tolerance = state.get("carat_tolerance")
         if target is not None and tolerance:
             parts.append(
-                f"between {max(0, target - tolerance):.4g} and "
-                f"{target + tolerance:.4g} carats"
+                f"between {max(0, target - tolerance):.4g} and {target + tolerance:.4g} carats"
             )
         elif target is not None:
             parts.append(f"{target} carats")
@@ -83,8 +81,19 @@ class DiamondAssistant:
         """Store only reusable filters instead of repeatedly sending full chat history."""
         result = dict(state or {})
         for field in (
-            "min_price", "max_price", "target_price", "target_carat", "carat_tolerance",
-            "depth", "table", "x", "y", "z", "cut", "color", "clarity",
+            "min_price",
+            "max_price",
+            "target_price",
+            "target_carat",
+            "carat_tolerance",
+            "depth",
+            "table",
+            "x",
+            "y",
+            "z",
+            "cut",
+            "color",
+            "clarity",
             "priorities",
         ):
             result[field] = getattr(plan, field)
@@ -171,7 +180,10 @@ class DiamondAssistant:
             current = normalize_user_text(question).casefold()
             if "thank" in current or current.strip(" .!") in {"got it", "okay thanks"}:
                 answer = "You're welcome. Ask whenever you want to compare diamonds."
-            elif any(phrase in current for phrase in ("help", "what can you do", "who are you", "how do you work")):
+            elif any(
+                phrase in current
+                for phrase in ("help", "what can you do", "who are you", "how do you work")
+            ):
                 answer = (
                     "I can find diamonds by budget, size, cut, color, or clarity; compare "
                     "real dataset examples; explain quality trade-offs; and use the saved "
@@ -185,11 +197,20 @@ class DiamondAssistant:
             empty = self.catalog.diamonds.head(0).copy()
             plan = DiamondQueryPlan()
             return {
-                "status": "answered", "answer": answer, "matches": empty,
-                "similar_matches": empty, "route": asdict(route), "plan": asdict(plan),
-                "initial_queries": [], "needed_second_retrieval": False,
-                "extra_queries": [], "knowledge": [], "knowledge_details": [],
-                "retrieved_memory": [], "saved_memory": None, "evidence": {},
+                "status": "answered",
+                "answer": answer,
+                "matches": empty,
+                "similar_matches": empty,
+                "route": asdict(route),
+                "plan": asdict(plan),
+                "initial_queries": [],
+                "needed_second_retrieval": False,
+                "extra_queries": [],
+                "knowledge": [],
+                "knowledge_details": [],
+                "retrieved_memory": [],
+                "saved_memory": None,
+                "evidence": {},
                 "trace": [
                     {"stage": "routing", "result": asdict(route)},
                     {"stage": "generation", "result": "skipped; conversational response"},
@@ -204,12 +225,20 @@ class DiamondAssistant:
                 "determine that information."
             )
             return {
-                "status": "answered", "answer": answer, "matches": empty,
-                "similar_matches": empty, "route": asdict(route),
-                "plan": asdict(DiamondQueryPlan()), "initial_queries": [],
-                "needed_second_retrieval": False, "extra_queries": [],
-                "knowledge": [], "knowledge_details": [], "retrieved_memory": [],
-                "saved_memory": None, "evidence": {},
+                "status": "answered",
+                "answer": answer,
+                "matches": empty,
+                "similar_matches": empty,
+                "route": asdict(route),
+                "plan": asdict(DiamondQueryPlan()),
+                "initial_queries": [],
+                "needed_second_retrieval": False,
+                "extra_queries": [],
+                "knowledge": [],
+                "knowledge_details": [],
+                "retrieved_memory": [],
+                "saved_memory": None,
+                "evidence": {},
                 "trace": [
                     {"stage": "routing", "result": asdict(route)},
                     {"stage": "generation", "result": "skipped; field unavailable"},
@@ -218,15 +247,16 @@ class DiamondAssistant:
             }
         model_inputs = {}
         if route.intent in {"price_prediction", "clarity_prediction"}:
-            model_inputs, missing = parse_model_inputs(
-                f"{context_text}\n{question}", route.intent
-            )
+            model_inputs, missing = parse_model_inputs(f"{context_text}\n{question}", route.intent)
             if missing:
                 labels = {"x": "x dimension", "y": "y dimension", "z": "z dimension"}
                 requested = ", ".join(labels.get(item, item) for item in missing)
                 return self._empty_result(
-                    DiamondQueryPlan(), route,
-                    f"To run the saved ANN, please provide: {requested}.", [], state
+                    DiamondQueryPlan(),
+                    route,
+                    f"To run the saved ANN, please provide: {requested}.",
+                    [],
+                    state,
                 )
         buying_plan = (
             build_buying_plan(
@@ -234,11 +264,13 @@ class DiamondAssistant:
                 context_text,
                 require_recommendation_details=route.intent != "dataset_count",
             )
-            if route.use_dataset else None
+            if route.use_dataset
+            else None
         )
         next_state = (
             self._next_state(buying_plan, state, question)
-            if buying_plan is not None else dict(state or {})
+            if buying_plan is not None
+            else dict(state or {})
         )
 
         # Clarification precedes memory lookup, embeddings, dataset search, and inference.
@@ -263,13 +295,22 @@ class DiamondAssistant:
                 {"stage": "generation", "result": "skipped; deterministic answer"},
             ]
             return {
-                "status": "answered", "answer": answer, "matches": matches,
-                "similar_matches": empty, "route": asdict(route),
-                "plan": asdict(buying_plan), "initial_queries": [],
-                "needed_second_retrieval": False, "extra_queries": [],
-                "knowledge": [], "knowledge_details": [], "retrieved_memory": [],
-                "saved_memory": None, "evidence": {"matching_count": count},
-                "trace": trace, "conversation_state": next_state,
+                "status": "answered",
+                "answer": answer,
+                "matches": matches,
+                "similar_matches": empty,
+                "route": asdict(route),
+                "plan": asdict(buying_plan),
+                "initial_queries": [],
+                "needed_second_retrieval": False,
+                "extra_queries": [],
+                "knowledge": [],
+                "knowledge_details": [],
+                "retrieved_memory": [],
+                "saved_memory": None,
+                "evidence": {"matching_count": count},
+                "trace": trace,
+                "conversation_state": next_state,
             }
 
         memory = self.memory.retrieve(question) if route.use_memory else []
@@ -294,14 +335,24 @@ class DiamondAssistant:
             # question. Remove them so the developer trace reflects the route that
             # the deterministic application code will actually execute.
             for field_name in (
-                "min_price", "max_price", "target_carat", "depth", "table",
-                "x", "y", "z", "cut", "color", "clarity",
+                "min_price",
+                "max_price",
+                "target_carat",
+                "depth",
+                "table",
+                "x",
+                "y",
+                "z",
+                "cut",
+                "color",
+                "clarity",
             ):
                 setattr(plan, field_name, None)
 
         matches = (
             self.catalog.search(plan, self.top_diamonds)
-            if route.use_dataset else self.catalog.diamonds.head(0).copy()
+            if route.use_dataset
+            else self.catalog.diamonds.head(0).copy()
         )
 
         if route.intent == "recommendation" and plan.search_dataset and matches.empty:
@@ -311,11 +362,19 @@ class DiamondAssistant:
                 "Change the budget, size, cut, color, or clarity requirement and I can search again."
             )
             return {
-                "status": "answered", "answer": answer, "matches": empty,
-                "similar_matches": empty, "route": asdict(route), "plan": asdict(plan),
-                "initial_queries": [], "needed_second_retrieval": False,
-                "extra_queries": [], "knowledge": [], "knowledge_details": [],
-                "retrieved_memory": memory, "saved_memory": None,
+                "status": "answered",
+                "answer": answer,
+                "matches": empty,
+                "similar_matches": empty,
+                "route": asdict(route),
+                "plan": asdict(plan),
+                "initial_queries": [],
+                "needed_second_retrieval": False,
+                "extra_queries": [],
+                "knowledge": [],
+                "knowledge_details": [],
+                "retrieved_memory": memory,
+                "saved_memory": None,
                 "evidence": {"matching_count": 0},
                 "trace": [
                     {"stage": "routing", "result": asdict(route)},
@@ -325,11 +384,7 @@ class DiamondAssistant:
                 "conversation_state": next_state,
             }
 
-        if (
-            route.intent == "recommendation"
-            and not route.use_knowledge
-            and not route.use_models
-        ):
+        if route.intent == "recommendation" and not route.use_knowledge and not route.use_models:
             prices = matches["price"]
             carats = matches["carat"]
             answer = (
@@ -340,11 +395,19 @@ class DiamondAssistant:
             )
             empty = self.catalog.diamonds.head(0).copy()
             return {
-                "status": "answered", "answer": answer, "matches": matches,
-                "similar_matches": empty, "route": asdict(route), "plan": asdict(plan),
-                "initial_queries": [], "needed_second_retrieval": False,
-                "extra_queries": [], "knowledge": [], "knowledge_details": [],
-                "retrieved_memory": memory, "saved_memory": None,
+                "status": "answered",
+                "answer": answer,
+                "matches": matches,
+                "similar_matches": empty,
+                "route": asdict(route),
+                "plan": asdict(plan),
+                "initial_queries": [],
+                "needed_second_retrieval": False,
+                "extra_queries": [],
+                "knowledge": [],
+                "knowledge_details": [],
+                "retrieved_memory": memory,
+                "saved_memory": None,
                 "evidence": {"matching_count": len(matches)},
                 "trace": [
                     {"stage": "routing", "result": asdict(route)},
@@ -371,10 +434,7 @@ class DiamondAssistant:
 
         # Saved ANNs are loaded at startup and used only for routed inference.
         model_evidence = {}
-        if (
-            route.intent in {"price_prediction", "clarity_prediction"}
-            and self.enricher is not None
-        ):
+        if route.intent in {"price_prediction", "clarity_prediction"} and self.enricher is not None:
             model_evidence = self.enricher.predict(route.intent, model_inputs)
         if route.use_models and self.enricher is not None:
             if not matches.empty:
@@ -383,7 +443,9 @@ class DiamondAssistant:
                 similar = self.enricher.enrich(similar)
 
         retrieval = {
-            "details": [], "initial_queries": [], "extra_queries": [],
+            "details": [],
+            "initial_queries": [],
+            "extra_queries": [],
             "needed_second_retrieval": False,
         }
         if route.use_knowledge:

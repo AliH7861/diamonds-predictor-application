@@ -121,8 +121,13 @@ def train_classification(data_path: Path, smoke: bool) -> dict:
     ):
         name = f"Experiment {run['experiment']} - {run['algorithm']}"
         save_best_model(
-            run["model"], run["model_type"], run["preprocessor"], run["experiment"],
-            name, run["metrics"], directory,
+            run["model"],
+            run["model_type"],
+            run["preprocessor"],
+            run["experiment"],
+            name,
+            run["metrics"],
+            directory,
         )
     test_metrics = evaluate_on_test(best_ann, prepared)
     (report_dir / "best_test_metrics.json").write_text(
@@ -134,8 +139,15 @@ def train_classification(data_path: Path, smoke: bool) -> dict:
     )
 
     sample = {
-        "carat": 1.0, "cut": "Ideal", "color": "G", "depth": 61.5,
-        "table": 57.0, "x": 6.45, "y": 6.43, "z": 3.96, "price": 6000.0,
+        "carat": 1.0,
+        "cut": "Ideal",
+        "color": "G",
+        "depth": 61.5,
+        "table": 57.0,
+        "x": 6.45,
+        "y": 6.43,
+        "z": 3.96,
+        "price": 6000.0,
     }
     prediction = predict_diamonds(load_best_model(output_dir), sample)[0]
     print(
@@ -206,8 +218,15 @@ def train_regression(data_path: Path, smoke: bool) -> dict:
     )
 
     sample = {
-        "carat": 1.0, "cut": "Ideal", "color": "G", "clarity": "VS1",
-        "depth": 61.5, "table": 57.0, "x": 6.45, "y": 6.43, "z": 3.96,
+        "carat": 1.0,
+        "cut": "Ideal",
+        "color": "G",
+        "clarity": "VS1",
+        "depth": 61.5,
+        "table": 57.0,
+        "x": 6.45,
+        "y": 6.43,
+        "z": 3.96,
     }
     prediction = predict_prices(load_best_model(output_dir), sample)[0]
     print(f"  Saved course model: {best_ann['feature_set']} / ANN", flush=True)
@@ -250,9 +269,20 @@ def run_with_docker(smoke: bool) -> None:
         check=True,
     )
     command = [
-        "docker", "run", "--rm", "--cpus", "4", "--memory", "8g",
-        "-e", "CUDA_VISIBLE_DEVICES=-1", "-e", "NVIDIA_VISIBLE_DEVICES=void",
-        "-v", f"{PROJECT_ROOT}:/workspace", "diamond-training",
+        "docker",
+        "run",
+        "--rm",
+        "--cpus",
+        "4",
+        "--memory",
+        "8g",
+        "-e",
+        "CUDA_VISIBLE_DEVICES=-1",
+        "-e",
+        "NVIDIA_VISIBLE_DEVICES=void",
+        "-v",
+        f"{PROJECT_ROOT}:/workspace",
+        "diamond-training",
     ]
     if smoke:
         command.append("--smoke")

@@ -7,8 +7,19 @@ from .schemas import DiamondQueryPlan
 
 
 BUYING_MARKERS = (
-    "i want", "find", "recommend", "looking for", "budget", "buy", "give me",
-    "good diamond", "best value", "how many", "below", "under", "carat",
+    "i want",
+    "find",
+    "recommend",
+    "looking for",
+    "budget",
+    "buy",
+    "give me",
+    "good diamond",
+    "best value",
+    "how many",
+    "below",
+    "under",
+    "carat",
 )
 CUT_GRADES = ("Fair", "Good", "Very Good", "Premium", "Ideal")
 CLARITY_GRADES = ("I1", "SI2", "SI1", "VS2", "VS1", "VVS2", "VVS1", "IF")
@@ -118,9 +129,7 @@ def build_buying_plan(
             carat, carat_tolerance = 1.25, 0.25
 
     def stated_number(label: str) -> float | None:
-        value = _last_match(
-            rf"\b{label}\s*(?:is|=|:)?\s*(\d+(?:\.\d+)?)", transcript
-        )
+        value = _last_match(rf"\b{label}\s*(?:is|=|:)?\s*(\d+(?:\.\d+)?)", transcript)
         return float(value) if value else None
 
     cut = _last_choice(transcript, CUT_GRADES)
@@ -133,27 +142,32 @@ def build_buying_plan(
     if clarity is None and re.search(r"\b(?:high|excellent|very good)\s+clarity\b", lowered):
         clarity = "VVS"
     elif clarity is None and (
-        "balance between clarity and price" in lowered
-        or "balance of clarity and price" in lowered
+        "balance between clarity and price" in lowered or "balance of clarity and price" in lowered
     ):
         clarity = "VS"
     color = _last_match(r"\bcolor(?:\s+grade)?\s+([D-J])\b", transcript)
 
-    no_clarity_preference = bool(re.search(
-        r"\b(?:don['’]?t\s+care(?:\s+that\s+much)?\s+about|remove|forget)\s+(?:the\s+)?clarity",
-        normalized_question,
-        flags=re.IGNORECASE,
-    ))
-    no_cut_preference = bool(re.search(
-        r"\b(?:don['’]?t\s+care(?:\s+that\s+much)?\s+about|remove|forget)\s+(?:the\s+)?cut",
-        normalized_question,
-        flags=re.IGNORECASE,
-    ))
-    no_color_preference = bool(re.search(
-        r"\b(?:don['’]?t\s+care(?:\s+that\s+much)?\s+about|remove|forget)\s+(?:the\s+)?color",
-        normalized_question,
-        flags=re.IGNORECASE,
-    ))
+    no_clarity_preference = bool(
+        re.search(
+            r"\b(?:don['’]?t\s+care(?:\s+that\s+much)?\s+about|remove|forget)\s+(?:the\s+)?clarity",
+            normalized_question,
+            flags=re.IGNORECASE,
+        )
+    )
+    no_cut_preference = bool(
+        re.search(
+            r"\b(?:don['’]?t\s+care(?:\s+that\s+much)?\s+about|remove|forget)\s+(?:the\s+)?cut",
+            normalized_question,
+            flags=re.IGNORECASE,
+        )
+    )
+    no_color_preference = bool(
+        re.search(
+            r"\b(?:don['’]?t\s+care(?:\s+that\s+much)?\s+about|remove|forget)\s+(?:the\s+)?color",
+            normalized_question,
+            flags=re.IGNORECASE,
+        )
+    )
     if no_clarity_preference:
         clarity = None
     if no_cut_preference:
@@ -194,7 +208,11 @@ def build_buying_plan(
     min_price = None
     max_price = budget
     target_price = None
-    if budget is not None and "around" in question.casefold() and "budget" not in question.casefold():
+    if (
+        budget is not None
+        and "around" in question.casefold()
+        and "budget" not in question.casefold()
+    ):
         min_price, max_price = budget * 0.9, budget * 1.1
         target_price = budget
 
@@ -229,14 +247,15 @@ def build_buying_plan(
     )
 
 
-def parse_model_inputs(text: str, intent: str) -> tuple[dict, list[str]]:
+def parse_model_inputs(text: str, intent: str) -> tuple[dict[str, float | str], list[str]]:
     """Extract raw ANN inputs from natural language and list anything still missing."""
+
     def number(label: str) -> float | None:
         found = _last_match(rf"\b(?:{label})\s*(?:is|=|:)?\s*(\d+(?:\.\d+)?)", text)
         return float(found) if found else None
 
     carat = _last_match(r"\b(\d+(?:\.\d+)?)\s*(?:carats?|ct)\b", text)
-    values = {
+    values: dict[str, float | str | None] = {
         "carat": float(carat) if carat else number(r"carats?|ct"),
         "depth": number("depth"),
         "table": number("table"),
@@ -248,8 +267,11 @@ def parse_model_inputs(text: str, intent: str) -> tuple[dict, list[str]]:
     values["price"] = float(money.replace(",", "")) if money else number("price")
     for column, options in (("cut", CUT_GRADES), ("clarity", CLARITY_GRADES)):
         values[column] = next(
-            (item for item in sorted(options, key=len, reverse=True)
-             if re.search(rf"\b{re.escape(item)}\b", text, flags=re.IGNORECASE)),
+            (
+                item
+                for item in sorted(options, key=len, reverse=True)
+                if re.search(rf"\b{re.escape(item)}\b", text, flags=re.IGNORECASE)
+            ),
             None,
         )
     color = _last_match(r"\bcolor(?:\s+grade)?\s+([D-J])\b", text)
