@@ -274,20 +274,63 @@ The HTTP integration test authenticates, calls `/chat`, serializes model/data ev
 
 ## CI/CD and Docker
 
-`.github/workflows/phase1-ci.yml` runs on pushes and pull requests:
+`.github/workflows/phase1-ci.yml` runs on pushes, pull requests, and manual dispatches.
+Its jobs have separate purposes:
 
-1. Ruff lint
-2. Unit and integration tests
-3. Assistant, UI, and HTTP component tests
-4. Real Chroma RAG test with deterministic embeddings
-5. K=3/5/7/10 clustering test
-6. End-to-end supervised validation
-7. Clean Linux Docker build and validation
+| Job | Purpose | Blocks publishing? |
+| --- | --- | ---: |
+| `quality` | Ruff, formatting, Pyright, React build, stable ML/API tests, deterministic RAG building blocks, and terminal validation | Yes |
+| `assistant-evaluation` | Development routing, state, model-evidence, and simplified-assistant benchmark with a JUnit report | No |
+| `docker-validation` | Rebuild and run the clean Linux CI image and validate the Compose file | Yes |
+| `publish-images` | Publish the production backend and frontend images to GHCR on `main` | Yes |
+
+The assistant benchmark and full RAG route evaluation remain visible as separate evaluations because
+the current routing/state suite contains known development failures. They do not hide those results
+and do not represent a passing production guarantee. Stable chunking/retrieval checks and all other
+gates must pass before either production image is published.
+
+### CI validation image
 
 ```powershell
-docker build -t diamond-project .
-docker run --rm diamond-project
+docker build -t diamond-project:ci .
+docker run --rm diamond-project:ci
 ```
+
+### Complete local application stack
+
+The production stack contains four services:
+
+```text
+browser → nginx/React :5173 → Python assistant API :8770 → Ollama :11434
+                                 ├─ mounted data/
+                                 ├─ mounted models/
+                                 └─ persistent vector_db/
+```
+
+First create or copy the raw dataset and saved model artifacts. They are deliberately ignored by
+Git and excluded from container images. Then run:
+
+```powershell
+docker compose up --build
+```
+
+The one-time `ollama-models` service downloads `qwen3.5:0.8b` and `nomic-embed-text`. The backend
+waits for that service, loads its resources once, and exposes `/health`, `/chat`, and `/chat/stream`.
+Nginx serves the React single-page application and proxies `/assistant-api/` to the backend without
+buffering streamed tokens.
+
+Stop the stack with `docker compose down`. Add `-v` only when you also intend to delete the named
+Ollama model volume.
+
+### Published images
+
+Successful pushes to `main` publish `latest` and commit-SHA tags:
+
+- `ghcr.io/alih7861/diamonds-predictor-backend`
+- `ghcr.io/alih7861/diamonds-predictor-frontend`
+
+These images contain application code and dependencies. Runtime datasets, trained models, and the
+vector database remain local artifacts and must be mounted as shown in `docker-compose.yml`.
 
 [View GitHub Actions](https://github.com/AliH7861/diamonds-predictor-application/actions).
 

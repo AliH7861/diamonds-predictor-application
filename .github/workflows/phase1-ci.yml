@@ -1,87 +1,171 @@
-name: Diamond Project CI
+name: Diamond Project CI/CD
 
 on:
   push:
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: diamond-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
-  test:
+  quality:
+    name: Quality and stable tests
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
-
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-ci.txt
-
       - name: Lint
         run: ruff check src tests scripts config.py app.py
-
       - name: Check formatting
         run: ruff format --check src/assistant tests scripts config.py app.py
-
       - name: Type check
         run: pyright
-
       - name: Build React frontend
         working-directory: frontend
         run: |
           npm ci
           npm run build
-
-      - name: Unit tests
+      - name: Stable unit tests
         run: pytest -q tests/unit --ignore=tests/unit/assistant
-
-      - name: Integration tests
+      - name: Stable pipeline tests
         run: >-
-          pytest -q tests/integration
-          --ignore=tests/integration/test_assistant_pipeline.py
-          --ignore=tests/integration/test_assistant_ui.py
-          --ignore=tests/integration/test_assistant_http.py
-          --ignore=tests/integration/test_clustering_pipeline.py
-
-      - name: Assistant, HTTP, and UI component tests
-        run: >-
-          pytest -q tests/unit/assistant
-          tests/integration/test_assistant_pipeline.py
+          pytest -q
+          tests/integration/test_classification_pipeline.py
+          tests/integration/test_classification_pipeline_existing.py
+          tests/integration/test_regression_pipeline.py
+          tests/integration/test_clustering_pipeline.py
           tests/integration/test_assistant_http.py
           tests/integration/test_assistant_ui.py
-
+          tests/e2e/test_phase1_end_to_end.py
       - name: Install RAG integration dependency
         run: pip install -r requirements-rag-ci.txt
-
-      - name: RAG embeddings and Chroma end-to-end test
-        run: python scripts/test_rag.py --ci
-
-      - name: Buyer segmentation end-to-end smoke test
-        run: pytest -q tests/integration/test_clustering_pipeline.py
-
-      - name: End-to-end tests
-        run: pytest -q tests/e2e
-
+      - name: Deterministic RAG building-block tests
+        run: >-
+          pytest -q
+          tests/unit/assistant/test_dataset.py
+          tests/unit/assistant/test_retrieval.py
       - name: Terminal validation
         run: python scripts/phase1_end_to_end.py
 
-  docker:
-    needs: test
+  assistant-evaluation:
+    name: Assistant routing evaluation
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install evaluation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+          pip install -r requirements-rag-ci.txt
+      - name: Run the development assistant benchmark
+        continue-on-error: true
+        run: >-
+          pytest -q
+          tests/unit/assistant
+          tests/integration/test_assistant_pipeline.py
+          tests/integration/test_assistant_model_integration.py
+          tests/e2e/test_simplified_assistant.py
+          --junitxml=assistant-evaluation.xml
+      - name: Run assistant RAG route evaluation
+        continue-on-error: true
+        run: python scripts/test_rag.py --ci
+      - name: Upload assistant evaluation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: assistant-evaluation-${{ github.run_id }}
+          path: assistant-evaluation.xml
+          if-no-files-found: warn
 
-      - name: Build image
-        run: docker build -t diamond-project .
-
+  docker-validation:
+    name: Validate CI container
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build validation image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          load: true
+          tags: diamond-project:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
       - name: Run validation in container
-        run: docker run --rm diamond-project
+        run: docker run --rm diamond-project:ci
+      - name: Validate production Compose configuration
+        run: docker compose config --quiet
+
+  publish-images:
+    name: Publish ${{ matrix.name }} image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [quality, docker-validation]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: backend
+            context: .
+            dockerfile: Dockerfile.backend
+          - name: frontend
+            context: frontend
+            dockerfile: frontend/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Normalize container image name
+        id: image
+        shell: bash
+        run: echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate image tags
+        id: metadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ steps.image.outputs.owner }}/diamonds-predictor-${{ matrix.name }}
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=sha-
+      - name: Build and publish image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}

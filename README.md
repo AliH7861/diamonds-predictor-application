@@ -39,6 +39,25 @@ Open the React assistant at `http://localhost:5173/`. The launcher starts the
 local Python backend once, waits for model and dataset resources to load, and keeps
 conversation state in the browser between page refreshes.
 
+### Run the complete application with Docker
+
+After placing `diamonds.csv` under `data/raw/` and creating the saved model artifacts,
+start the React frontend, Python assistant API, Ollama, and both local language models with:
+
+```powershell
+docker compose up --build
+```
+
+Open `http://localhost:5173/`. The API health endpoint is available at
+`http://localhost:8770/health`. The Compose stack mounts `data/`, `models/`, and
+`vector_db/` from the local project so generated data and model artifacts do not become
+part of a public container image.
+
+GitHub Actions checks formatting, types, the frontend build, stable model pipelines,
+RAG, clustering, and the Docker validation image. Pushes to `main` also publish separate
+frontend and backend images to GitHub Container Registry. The development assistant
+routing benchmark is reported separately while its remaining cases are being hardened.
+
 ## Documentation map
 
 | Guide | Use it for |
@@ -69,6 +88,23 @@ The source contains 53,940 rows. Each row describes one diamond.
 | `x`, `y`, `z` | Length, width, and height | Keep after physical validation |
 
 Initial inspection found an exported index, 146 duplicate feature rows, 20 rows with a zero physical dimension, and no missing values in the modeling columns. The dataset has no customer IDs, demographics, or purchase histories. Segmentation therefore represents anonymous purchase profiles rather than tracked customers.
+
+### EDA distributions
+
+![Diamond price, carat, depth, table, x, and z distributions](docs/assets/eda/diamond_distributions.png)
+
+Price and carat are strongly right-skewed: many diamonds occupy the lower ranges and progressively
+fewer observations appear at larger sizes and prices. Depth and table are much more concentrated.
+The repeated peaks in physical dimensions reflect common commercial carat and size points rather
+than normally distributed measurements.
+
+### Numeric relationships
+
+![Numeric feature correlation heatmap](docs/assets/eda/numeric_correlations.png)
+
+Carat, dimensions, face area, and volume move together and all have a strong relationship with
+price. This explains why the project tested ratios, asymmetry, density-style measures, and human
+features instead of treating every closely related size column as independent information.
 
 ## 2. Cleaning decisions
 
