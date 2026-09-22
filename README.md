@@ -135,9 +135,9 @@ Cleaning preserved physically realistic variation. Each workflow documents its e
 
 Carat, dimensions, cut, and color contained some clarity signal, but the original grades overlapped heavily. Professional clarity grading depends on microscopic inclusions that this dataset does not contain. Physical measurements could provide hints but could not reproduce grading reliably.
 
-![Numeric features that differentiate the original clarity grades](docs/assets/eda/clarity_numeric_signal.png)
+![Numeric features that differentiate the original clarity grades](docs/assets/eda/older_eda/clarity_numeric_signal.png)
 
-![Relative physical profiles across the original clarity grades](docs/assets/eda/clarity_grade_profiles.png)
+![Relative physical profiles across the original clarity grades](docs/assets/eda/older_eda/clarity_grade_profiles.png)
 
 These historical EDA views were created before the final five-family target. They showed that size
 and geometry change across clarity groups, but the profiles overlap instead of forming clean physical
@@ -177,9 +177,9 @@ The central finding was that a feature helped when it introduced a useful relati
 
 ### Geometry findings from the original EDA
 
-![Median face-area advantage across depth bands](docs/assets/eda/depth_face_area_effect.png)
+![Median face-area advantage across depth bands](docs/assets/eda/older_eda/depth_face_area_effect.png)
 
-![Face-up size advantage across table and depth groups](docs/assets/eda/table_depth_face_area.png)
+![Face-up size advantage across table and depth groups](docs/assets/eda/older_eda/table_depth_face_area.png)
 
 These plots explain why depth and table were retained in ratio and interaction features even though
 depth alone had little linear correlation with price. Shallower proportions tended to produce more
@@ -252,9 +252,9 @@ The required course model is HUMAN_PLUS_RAW XGBoost.
 
 Human features added meaning but lost exact information when used alone. Combining human and raw features produced the strongest representation. The comparison ANN remains available at **$271.15 test MAE and 0.9798 R²**.
 
-![Actual versus predicted price for the historical XGBoost regression](docs/assets/eda/price_actual_vs_predicted.png)
+![Actual versus predicted price for the historical XGBoost regression](docs/assets/eda/older_eda/price_actual_vs_predicted.png)
 
-![Regression residuals across predicted prices](docs/assets/eda/price_residuals.png)
+![Regression residuals across predicted prices](docs/assets/eda/older_eda/price_residuals.png)
 
 The historical regression diagnostics support two conclusions: predictions followed actual prices
 closely across most of the range, while dollar errors spread out for expensive diamonds. That is why
@@ -570,3 +570,4 @@ Repository structure, file responsibilities, training, APIs, tests, Docker, CI/C
 ## Repository
 
 [github.com/AliH7861/diamonds-predictor-application](https://github.com/AliH7861/diamonds-predictor-application)
+
