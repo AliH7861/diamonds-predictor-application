@@ -135,6 +135,15 @@ Cleaning preserved physically realistic variation. Each workflow documents its e
 
 Carat, dimensions, cut, and color contained some clarity signal, but the original grades overlapped heavily. Professional clarity grading depends on microscopic inclusions that this dataset does not contain. Physical measurements could provide hints but could not reproduce grading reliably.
 
+![Numeric features that differentiate the original clarity grades](docs/assets/eda/clarity_numeric_signal.png)
+
+![Relative physical profiles across the original clarity grades](docs/assets/eda/clarity_grade_profiles.png)
+
+These historical EDA views were created before the final five-family target. They showed that size
+and geometry change across clarity groups, but the profiles overlap instead of forming clean physical
+boundaries. Price was investigated during EDA, then deliberately removed from the maintained clarity
+pipeline because it is a market outcome rather than physical grading evidence.
+
 ### Price
 
 Price had much stronger structure. Carat had the strongest simple numeric relationship with price (`r = 0.922`), followed by `x` (`0.887`), `z` (`0.868`), and `y` (`0.868`). Depth had almost no simple linear relationship (`-0.011`). Size explained much of price, while cut, color, clarity, proportions, and market thresholds explained differences between similarly sized diamonds.
@@ -165,6 +174,16 @@ Raw measurements tell the model what was measured. Engineered features express r
 - Human-readable regression features could not replace raw geometry. The hybrid representation was strongest.
 
 The central finding was that a feature helped when it introduced a useful relationship. Adding columns alone did not improve a model.
+
+### Geometry findings from the original EDA
+
+![Median face-area advantage across depth bands](docs/assets/eda/depth_face_area_effect.png)
+
+![Face-up size advantage across table and depth groups](docs/assets/eda/table_depth_face_area.png)
+
+These plots explain why depth and table were retained in ratio and interaction features even though
+depth alone had little linear correlation with price. Shallower proportions tended to produce more
+visible face area, while deeper combinations tended to reduce face-up size.
 
 ## 5. Clarity classification
 
@@ -232,6 +251,15 @@ The required course model is HUMAN_PLUS_RAW XGBoost.
 | Test | **$245.44** | **$87.20** | **$505.07** | **0.9834** | **5.89%** | **82.46%** |
 
 Human features added meaning but lost exact information when used alone. Combining human and raw features produced the strongest representation. The comparison ANN remains available at **$271.15 test MAE and 0.9798 R²**.
+
+![Actual versus predicted price for the historical XGBoost regression](docs/assets/eda/price_actual_vs_predicted.png)
+
+![Regression residuals across predicted prices](docs/assets/eda/price_residuals.png)
+
+The historical regression diagnostics support two conclusions: predictions followed actual prices
+closely across most of the range, while dollar errors spread out for expensive diamonds. That is why
+the final evaluation reports both dollar and percentage errors, price-band results, and tail-error
+percentiles instead of relying on a single overall score.
 
 ## 7. Buyer segmentation
 
