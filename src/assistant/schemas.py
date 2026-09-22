@@ -10,6 +10,13 @@ class EvidenceRoute:
     """Intent and evidence sources selected before any expensive work runs."""
 
     intent: str
+    family: str = "knowledge"
+    level_1: str = "KNOWLEDGE_TASK"
+    level_2: str = "EXPLAIN"
+    level_3: str = "RAG_EXPLANATION"
+    confidence: float = 1.0
+    source: str = "deterministic"
+    reason: str = ""
     use_dataset: bool = False
     use_similarity: bool = False
     use_knowledge: bool = False

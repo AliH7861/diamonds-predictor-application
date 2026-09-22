@@ -6,7 +6,7 @@ from urllib.request import Request, urlopen
 import pandas as pd
 
 from src.assistant.api import create_server
-from src.assistant.client import AssistantAPIClient
+from src.assistant.streamlit_app.client import AssistantAPIClient
 
 
 class FakeAssistant:

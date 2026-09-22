@@ -14,7 +14,7 @@ line-ending = "auto"
 [tool.pyright]
 include = [
     "src/assistant/api.py",
-    "src/assistant/client.py",
+    "src/assistant/streamlit_app/client.py",
     "src/assistant/clarification.py",
     "src/assistant/generation.py",
     "src/assistant/schemas.py",

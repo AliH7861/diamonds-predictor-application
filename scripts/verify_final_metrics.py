@@ -18,7 +18,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 
 def verify_classification() -> dict:
-    """Evaluate the saved primary ANN and benchmark classifier."""
+    """Evaluate the saved default classifier and each maintained algorithm."""
     from src.classification.evaluation import evaluate_model
     from src.classification.preprocessing import prepare_classification_data
     from src.classification.prediction import load_best_model
@@ -27,14 +27,24 @@ def verify_classification() -> dict:
     test_rows = prepared["diamonds"].iloc[prepared["test_indices"]]
     results = {}
 
-    for role, directory in (
-        ("primary", PROJECT_ROOT / "models" / "classification"),
-        ("benchmark_winner", PROJECT_ROOT / "models" / "classification" / "benchmark_winner"),
-    ):
+    directories = [("default", PROJECT_ROOT / "models" / "classification")]
+    directories.extend(
+        (name, PROJECT_ROOT / "models" / "classification" / name)
+        for name in ("ann", "xgboost", "random_forest")
+        if (PROJECT_ROOT / "models" / "classification" / name / "metadata.json").is_file()
+    )
+    from src.classification.ordinal import predict_ordinal_ann, predict_ordinal_models
+
+    for role, directory in directories:
         bundle = load_best_model(directory)
         features = bundle["metadata"]["features"]
         matrix = bundle["preprocessor"].transform(test_rows[features]).astype(np.float32)
-        if bundle["metadata"]["model_type"] == "ANN":
+        model_type = bundle["metadata"]["model_type"]
+        if model_type == "OrdinalANN":
+            predicted, _ = predict_ordinal_ann(bundle["model"], matrix)
+        elif model_type == "OrdinalTree":
+            predicted, _ = predict_ordinal_models(bundle["model"], matrix)
+        elif model_type == "ANN":
             predicted = bundle["model"].predict(matrix, verbose=0).argmax(axis=1)
         else:
             predicted = bundle["model"].predict(matrix)
@@ -45,9 +55,7 @@ def verify_classification() -> dict:
             bundle["metadata"]["model_name"].split(" - ")[-1],
         )
         results[role] = metrics
-        name = (
-            "best_test_metrics.json" if role == "primary" else "benchmark_winner_test_metrics.json"
-        )
+        name = "best_test_metrics.json" if role == "default" else f"{role}_test_metrics.json"
         output = PROJECT_ROOT / "outputs" / "classification" / "metrics" / name
         output.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
         print(
@@ -59,7 +67,7 @@ def verify_classification() -> dict:
 
 
 def verify_regression() -> dict:
-    """Evaluate the saved primary ANN and benchmark price regressor."""
+    """Evaluate the saved selected model and benchmark price regressor."""
     from src.regression.prediction import load_best_model
     from src.regression.preprocessing import prepare_regression_data
     from src.regression.training import evaluate_on_test

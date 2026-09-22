@@ -1,26 +1,51 @@
-from src.clustering.pipeline import CANDIDATE_K, run_buyer_segmentation
+"""Integration checks for persisted, reusable customer segmentation."""
+
+from src.clustering.config import SegmentationConfig
+from src.clustering.pipeline import persist_segmentation_result, run_segmentation
 from src.clustering.prediction import assign_purchase_segment, load_segmentation_model
 from tests.helpers import make_diamonds
 
 
-def test_clustering_compares_all_k_values_and_reloads_assignment(tmp_path):
-    data_path = tmp_path / "diamonds.csv"
-    make_diamonds(rows=120).to_csv(data_path, index=False)
-    result = run_buyer_segmentation(
-        data_path=data_path,
+def test_segmentation_compares_methods_and_reloads_assignment(tmp_path):
+    frame = make_diamonds(rows=240).drop(columns="Unnamed: 0")
+    config = SegmentationConfig(
+        k_values=(3, 5),
+        silhouette_sample_size=150,
+        agglomerative_sample_size=150,
+        stability_seeds=(0, 1),
+    )
+    result = run_segmentation(
+        frame,
+        config=config,
+        visualization_dir=tmp_path / "figures",
+    )
+    assert set(result.comparison["Method"]) == {"KMeans", "GMM", "Agglomerative"}
+    assert result.selected_k in {3, 5}
+    assert bool(
+        result.comparison.set_index("Solution").loc[
+            result.selected_solution, "ValidCustomerSegments"
+        ]
+    )
+    assert {"cluster_id", "customer_profile_name"}.issubset(result.enriched_diamonds)
+    assert len(result.rag_records) == len(result.profiles)
+
+    artifact_path = persist_segmentation_result(
+        result,
         output_root=tmp_path / "outputs",
         model_dir=tmp_path / "models",
-        smoke=True,
     )
-    assert tuple(result["comparison"]["K"]) == CANDIDATE_K
-    assert result["selected_k"] in CANDIDATE_K
-    selected_row = result["comparison"].set_index("K").loc[result["selected_k"]]
-    assert bool(selected_row["Quality_Checks_Passed"])
-    assert "Stability_ARI" in result["comparison"]
-    artifact = load_segmentation_model(result["artifact"])
-    assert artifact["artifact_version"] == 2
-    assert "BUY_ClarityFamily" in artifact["model_features"]
-    assert not {"x", "y", "z"}.intersection(artifact["model_features"])
-    assigned = assign_purchase_segment(artifact, make_diamonds(rows=1).iloc[0].to_dict())
-    assert assigned.loc[0, "Cluster"] in range(result["selected_k"])
-    assert isinstance(assigned.loc[0, "Buyer_Interpretation"], str)
+    artifact = load_segmentation_model(artifact_path)
+    assert artifact["artifact_version"] == 3
+    assigned = assign_purchase_segment(
+        artifact, make_diamonds(rows=1).drop(columns="Unnamed: 0").iloc[0].to_dict()
+    )
+    assert assigned.loc[0, "cluster_id"] in range(result.selected_k)
+    assert isinstance(assigned.loc[0, "customer_profile_name"], str)
+
+    for filename in (
+        "segment_sizes.png",
+        "method_comparison.png",
+        "profile_heatmap.png",
+        "pca_segments.png",
+    ):
+        assert (tmp_path / "figures" / filename).exists()

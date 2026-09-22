@@ -1,0 +1,23 @@
+Feature,Importance
+categorical__cut_Fair,0.33448765
+categorical__color_D,0.06490451
+categorical__cut_Ideal,0.06209106
+numeric__Y22_FaceAreaTimesDepth,0.05235253
+categorical__color_E,0.04524999
+categorical__color_G,0.035364777
+categorical__color_J,0.03117977
+numeric__Y22_XYRatio,0.030671373
+numeric__Y22_CaratTimesXYAsymmetry,0.029361594
+categorical__cut_Good,0.029027324
+categorical__cut_Very Good,0.025901537
+numeric__Y22_MeanXYPerCaratCubeRoot,0.02542941
+categorical__color_H,0.024949707
+categorical__color_I,0.024726992
+numeric__Y22_CaratPerVolume,0.024696754
+numeric__Y22_AbsDepthError,0.024156023
+numeric__Y22_ZPerCaratCubeRoot,0.023597743
+categorical__cut_Premium,0.023525607
+numeric__Y22_DepthTimesTable,0.023225179
+categorical__color_F,0.022164369
+numeric__Y22_DepthTableRatio,0.021693356
+numeric__Y22_DepthError,0.021242732

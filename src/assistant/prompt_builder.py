@@ -10,6 +10,7 @@ from .schemas import DiamondQueryPlan, EvidenceRoute
 
 
 VISIBLE_COLUMNS = [
+    "_row_id",
     "price",
     "carat",
     "cut",
@@ -26,6 +27,7 @@ VISIBLE_COLUMNS = [
     "predicted_clarity_family",
     "buyer_segment",
     "buyer_interpretation",
+    "why_it_stands_out",
 ]
 
 
@@ -76,9 +78,23 @@ def build_evidence_payload(
 
 
 def build_generation_prompt(question: str, conversation_text: str, evidence: dict) -> str:
-    """Create one concise grounded prompt without full DataFrames or long history."""
+    """Separate observed, retrieved, predicted, and state evidence explicitly."""
+    dataset_results = evidence.get("top_matches", [])
+    dataset_statistics = evidence.get("dataset_statistics", {})
+    rag_knowledge = evidence.get("rag_facts", [])
+    model_outputs = evidence.get("model_evidence", {})
+    current_state = evidence.get("filters", {})
     return (
         f"Recent conversation:\n{conversation_text}\n\n"
         f"Current question:\n{question}\n\n"
-        "Compact evidence:\n" + json.dumps(evidence, ensure_ascii=False, separators=(",", ":"))
+        "DATASET RESULTS\n"
+        + json.dumps(dataset_results, ensure_ascii=False, separators=(",", ":"))
+        + "\n\nDATASET STATISTICS\n"
+        + json.dumps(dataset_statistics, ensure_ascii=False, separators=(",", ":"))
+        + "\n\nRAG KNOWLEDGE\n"
+        + json.dumps(rag_knowledge, ensure_ascii=False, separators=(",", ":"))
+        + "\n\nMODEL OUTPUTS\n"
+        + json.dumps(model_outputs, ensure_ascii=False, separators=(",", ":"))
+        + "\n\nCURRENT SEARCH STATE\n"
+        + json.dumps(current_state, ensure_ascii=False, separators=(",", ":"))
     )

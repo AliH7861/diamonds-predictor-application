@@ -4,8 +4,15 @@ from uuid import uuid4
 
 import pandas as pd
 
-from .clarity import clarity_family
-from .ui_content import APP_DESCRIPTION, APP_TITLE, INPUT_PLACEHOLDER
+from ..clarity import clarity_family
+
+
+APP_TITLE = "Diamond Decision Assistant"
+APP_DESCRIPTION = (
+    "Compare real dataset examples, understand quality trade-offs, and build a diamond "
+    "recommendation from your budget and preferences."
+)
+INPUT_PLACEHOLDER = "Describe your budget, preferred size, and what matters most..."
 
 
 PAGE_STYLES = """
@@ -195,14 +202,24 @@ def _describe_matches(frame: pd.DataFrame) -> list[str]:
 
 
 def _render_message_result(st, result: dict, developer_mode: bool, heading: bool = False) -> None:
-    """Describe ranked matches in prose and expose raw tables only to developers."""
+    """Show every returned match in the same five-row table as the React UI."""
     recommendations = result.get("similar_matches")
     if recommendations is None or recommendations.empty:
         recommendations = result["matches"]
     if not recommendations.empty:
         if heading:
             st.subheader("Closest dataset matches")
-        st.markdown(_safe_markdown("\n\n".join(_describe_matches(recommendations))))
+        columns = [
+            column
+            for column in ("price", "carat", "cut", "color", "clarity", "why_it_stands_out")
+            if column in recommendations.columns
+        ]
+        visible = recommendations.loc[:, columns].copy()
+        if "clarity" in visible:
+            visible["clarity"] = visible["clarity"].map(clarity_family)
+        visible.index = range(1, len(visible) + 1)
+        visible.index.name = "#"
+        st.dataframe(visible, use_container_width=True)
     if developer_mode:
         _render_trace(st, result, expanded=heading)
 

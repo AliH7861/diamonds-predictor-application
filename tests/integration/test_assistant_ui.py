@@ -2,7 +2,7 @@ import unittest
 
 import pandas as pd
 
-from src.assistant.ui import render_app
+from src.assistant.streamlit_app.ui import render_app
 
 
 class Block:
@@ -101,7 +101,7 @@ class AssistantUITests(unittest.TestCase):
             6000,
         )
         self.assertIn(("markdown", "A tested answer."), st.events)
-        self.assertFalse(any(event[0] == "dataframe" for event in st.events))
+        self.assertTrue(any(event[0] == "dataframe" for event in st.events))
         self.assertIn(("subheader", "Closest dataset matches"), st.events)
         self.assertFalse(any(event[0] == "expander" for event in st.events))
 

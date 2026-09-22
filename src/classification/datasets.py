@@ -1,98 +1,117 @@
+"""
+Build, inspect, and export the datasets used by the diamond clarity-classification workflow.
+
+This module reconstructs the cleaned, engineered, raw experiment, and processed
+train/validation/test DataFrames from the prepared classification data.
+
+It also saves each dataset and its descriptive statistics to organized folders,
+creates a manifest describing the generated files, writes a README explaining
+the exports, and provides notebook utilities for inspecting each dataset.
+"""
+
 from pathlib import Path
 import json
+
 import numpy as np
 import pandas as pd
 
-# Build DataFrames With Targets and Shared Split Membership
-
 
 def get_dataset_frames(prepared):
-    # Create a Copy of the Cleaned DataFrame and Add a Split Column to Indicate Train, Validation, or Test Membership
+    """Build the cleaned, engineered, experiment, and processed dataset DataFrames."""
+
     df = prepared["diamonds"]
 
-    # Create an Empty NumPy Array to Store Split Membership for Each Row in the DataFrame
+    # Track whether each original row belongs to train, validation, or test.
     split = np.empty(len(df), dtype=object)
 
-    # Assign Split Membership Based on Prepared Indices
     for name in ["train", "valid", "test"]:
         split[prepared[f"{name}_indices"]] = name
 
-    # Create a Dictionary to Store DataFrames for Each Dataset Type (Cleaned, Engineered, and Experiments)
     frames = {}
 
-    # Add Cleaned and Engineered DataFrames to the Frames Dictionary With Source Row and Split Columns
+    # Keep cleaned and fully engineered versions with source-row and split metadata.
     for name, source in [("cleaned", prepared["cleaned"]), ("engineered", df)]:
         frame = source.copy()
         frame.insert(0, "Source_Row", df.index.to_numpy())
         frame["Split"] = split
         frames[name] = frame
 
-    # Add Experiment DataFrames to the Frames Dictionary With Source Row, Split, Clarity_Target, and Clarity_Family Columns
+    # Build the raw and processed DataFrames used by each experiment.
     for number, experiment in prepared["experiments"].items():
         preprocessor = experiment["preprocessor"]
         features = list(preprocessor.feature_names_in_)
+
+        # Original-unit experiment features with targets and split membership.
         raw = df[features + ["Clarity_Target", "Clarity_Family"]].copy()
         raw.insert(0, "Source_Row", df.index.to_numpy())
         raw["Split"] = split
         frames[f"experiment_{number}"] = raw
 
-        # Add Processed Experiment DataFrames for Each Split (Train, Validation, Test) to the Frames Dictionary With Source Row, Clarity_Target, Clarity_Family, and Split Columns
+        # Exact scaled and encoded matrices used by the models.
         for name in ["train", "valid", "test"]:
             indices = prepared[f"{name}_indices"]
-            frame = pd.DataFrame(experiment[f"X_{name}"], columns=preprocessor.get_feature_names_out())
+            columns = preprocessor.get_feature_names_out()
+
+            frame = pd.DataFrame(experiment[f"X_{name}"], columns=columns)
             frame.insert(0, "Source_Row", df.index.to_numpy()[indices])
             frame["Clarity_Target"] = prepared[f"y_{name}"]
             frame["Clarity_Family"] = df.iloc[indices]["Clarity_Family"].to_numpy()
             frame["Split"] = name
+
             frames[f"experiment_{number}_{name}_processed"] = frame
 
-    # Return the Dictionary of DataFrames for Each Dataset Type
     return frames
 
 
-# Choose a Folder for Each Dataset and Its Statistics
 def dataset_paths(name):
+    """Return the dataset and statistics paths for one exported dataset."""
 
-    # If the Dataset Name Is "cleaned" or "engineered", Return the Paths for the Cleaned or Engineered Dataset and Its Statistics
+    # Cleaned and engineered datasets each use their own top-level folder.
     if name in ["cleaned", "engineered"]:
         folder = Path(name)
         return folder / "dataset.csv", folder / "statistics" / "summary.csv"
 
     parts = name.split("_")
-    
-    # Choose a Folder for Each Experiment Dataset and Its Statistics Based on the Experiment Number and Split
     folder = Path("experiments") / f"experiment_{parts[1]}"
 
-    # If the Dataset Name Has Only Two Parts (Experiment Number), Return the Paths for the Experiment Dataset and Its Statistics
+    # Raw experiment dataset before scaling and encoding.
     if len(parts) == 2:
         return folder / "dataset.csv", folder / "statistics" / "dataset.csv"
 
+    # Processed train, validation, or test dataset.
     split = parts[2]
     return folder / "processed" / f"{split}.csv", folder / "statistics" / f"{split}.csv"
 
 
-# Save the Actual DataFrames Used by Classification
 def export_datasets(prepared, output_dir):
+    """Export classification datasets, statistics, manifest metadata, and documentation."""
 
-    # Create the Output Directory and Its Parent Directories if They Do Not Exist
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+
     frames = get_dataset_frames(prepared)
     manifest = {}
 
-    # Save Each DataFrame to a CSV File in the Appropriate Folder and Create a Manifest Dictionary With Metadata for Each Dataset
+    # Save every dataset and its descriptive statistics.
     for name, frame in frames.items():
         data_path, statistics_path = dataset_paths(name)
+
         (output_dir / data_path).parent.mkdir(parents=True, exist_ok=True)
         (output_dir / statistics_path).parent.mkdir(parents=True, exist_ok=True)
+
         frame.to_csv(output_dir / data_path, index=False)
         frame.drop(columns="Source_Row").describe(include="all").T.to_csv(output_dir / statistics_path)
-        manifest[name] = {"rows": len(frame), "columns": frame.columns.tolist(),
-                          "file": data_path.as_posix(), "statistics_file": statistics_path.as_posix()}
 
-    # Save the Manifest and README Files in the Output Directory
+        manifest[name] = {
+            "rows": len(frame), "columns": frame.columns.tolist(),
+            "file": data_path.as_posix(), "statistics_file": statistics_path.as_posix()
+        }
+
+    # Manifest records where every generated dataset and statistics file was saved.
     (output_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-    (output_dir / "README.md").write_text(
+
+    # README explains the exported folder structure and metadata columns.
+    readme = (
         "# Classification datasets\n\n"
         "Generated by ClassificationModel.ipynb from diamonds.csv.\n"
         "cleaned/dataset.csv contains cleaned observations and clarity targets; engineered/dataset.csv adds all features.\n"
@@ -102,25 +121,33 @@ def export_datasets(prepared, output_dir):
         "Source_Row is the zero-based original CSV data-row position, retained across all exports.\n"
         "Source_Row, Split, Clarity_Target, and Clarity_Family are metadata/labels, never model inputs.\n"
         "Statistics files describe each complete exported frame; test statistics are descriptive only.\n"
-        "Preprocessors were fitted on training data only. Rerunning export replaces these generated files.\n",
-        encoding="utf-8"
+        "Preprocessors were fitted on training data only. Rerunning export replaces these generated files.\n"
     )
 
-    # Return a DataFrame Summarizing Each Dataset's Name, Number of Rows, Number of Columns, and File Path
-    return pd.DataFrame([{"Dataset": name, "Rows": len(frame), "Columns": len(frame.columns),
-                          "File": str(output_dir / dataset_paths(name)[0])} for name, frame in frames.items()])
+    (output_dir / "README.md").write_text(readme, encoding="utf-8")
+
+    # Return a compact summary of the generated datasets.
+    summary = [
+        {
+            "Dataset": name, "Rows": len(frame), "Columns": len(frame.columns),
+            "File": str(output_dir / dataset_paths(name)[0])
+        }
+        for name, frame in frames.items()
+    ]
+
+    return pd.DataFrame(summary)
 
 
-# Display Each DataFrame, Its Structure, Missing Values, and Statistics
 def show_dataset_info(prepared):
+    """Display each classification dataset with structure, missing values, and statistics."""
+
     from IPython.display import display
 
-    # Display Each DataFrame, Its Structure, Missing Values, and Statistics for Each Dataset in the Prepared Dictionary
     for name, frame in get_dataset_frames(prepared).items():
         print(f"\n{name}: {frame.shape[0]:,} rows x {frame.shape[1]} columns")
+
+        # Show the full frame, schema, missing-value counts, and descriptive statistics.
         display(frame)
         frame.info()
-
-        # Display the Number of Missing Values for Each Column in the DataFrame and Its Descriptive Statistics (Excluding the Source_Row Column)
         display(frame.isna().sum().rename("Missing values").to_frame())
         display(frame.drop(columns="Source_Row").describe(include="all").T)

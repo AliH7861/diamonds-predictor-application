@@ -35,18 +35,14 @@ class ClassificationWorkflowTests(unittest.TestCase):
             "x": 5.7,
             "y": 5.72,
             "z": 3.51,
-            "price": 2500,
         }
-        cls.models = {}
-        for number in [1, 2]:
-            data = cls.prepared["experiments"][number]
-            model = GaussianNB().fit(data["X_train"], cls.prepared["y_train"])
-            folder = Path(cls.temp.name) / str(number)
-            save_best_model(
-                model, "Tree", data["preprocessor"], number, "Verification model", {}, folder
-            )
-            cls.models[number] = (model, load_best_model(folder))
-        cls.server = start_prediction_api(Path(cls.temp.name) / "2", port=0)
+        data = cls.prepared["experiments"][1]
+        model = GaussianNB().fit(data["X_train"], cls.prepared["y_train"])
+        folder = Path(cls.temp.name) / "1"
+        save_best_model(model, "Tree", data["preprocessor"], 1, "Verification model", {}, folder)
+        cls.model = model
+        cls.bundle = load_best_model(folder)
+        cls.server = start_prediction_api(folder, port=0)
         cls.url = f"http://127.0.0.1:{cls.server.server_port}"
 
     @classmethod
@@ -56,23 +52,21 @@ class ClassificationWorkflowTests(unittest.TestCase):
         cls.temp.cleanup()
 
     def test_saved_predictions_match_original_model(self):
-        for number, (model, bundle) in self.models.items():
-            features = engineer_features(pd.DataFrame([self.example]))
-            X = (
-                bundle["preprocessor"]
-                .transform(features[bundle["metadata"]["features"]])
-                .astype(np.float32)
-            )
-            expected = model.predict_proba(X)[0]
-            result = predict_diamonds(bundle, self.example)[0]
-            np.testing.assert_allclose(list(result["probabilities"].values()), expected)
-            self.assertEqual(result["clarity_target"], int(model.predict(X)[0]))
+        features = engineer_features(pd.DataFrame([self.example]))
+        X = (
+            self.bundle["preprocessor"]
+            .transform(features[self.bundle["metadata"]["features"]])
+            .astype(np.float32)
+        )
+        expected = self.model.predict_proba(X)[0]
+        result = predict_diamonds(self.bundle, self.example)[0]
+        np.testing.assert_allclose(list(result["probabilities"].values()), expected)
+        self.assertEqual(result["clarity_target"], int(self.model.predict(X)[0]))
 
-    def test_price_requirement_tracks_winning_experiment(self):
-        without_price = {key: value for key, value in self.example.items() if key != "price"}
-        self.assertEqual(len(predict_diamonds(self.models[1][1], without_price)), 1)
+    def test_price_is_not_a_classification_input(self):
+        self.assertEqual(len(predict_diamonds(self.bundle, self.example)), 1)
         with self.assertRaisesRegex(ValueError, "price"):
-            predict_diamonds(self.models[2][1], without_price)
+            predict_diamonds(self.bundle, dict(self.example, price=2500))
 
     def test_http_predictions_and_validation(self):
         payload = [self.example, self.example]
@@ -83,9 +77,9 @@ class ClassificationWorkflowTests(unittest.TestCase):
         )
         with urlopen(request, timeout=10) as response:
             result = json.load(response)
-        self.assertEqual(result["predictions"], predict_diamonds(self.models[2][1], payload))
+        self.assertEqual(result["predictions"], predict_diamonds(self.bundle, payload))
         with urlopen(self.url + "/model", timeout=10) as response:
-            self.assertIn("price", json.load(response)["required_inputs"])
+            self.assertNotIn("price", json.load(response)["required_inputs"])
         for bad in [dict(self.example, x=0), dict(self.example, clarity="IF"), {}]:
             request = Request(self.url + "/predict", data=json.dumps(bad).encode())
             with self.assertRaises(HTTPError) as caught:
@@ -95,7 +89,7 @@ class ClassificationWorkflowTests(unittest.TestCase):
 
     def test_exported_frames_match_model_inputs_and_labels(self):
         frames = get_dataset_frames(self.prepared)
-        self.assertEqual(len(frames), 14)
+        self.assertEqual(len(frames), 6)
         for number, data in self.prepared["experiments"].items():
             for split in ["train", "valid", "test"]:
                 frame = frames[f"experiment_{number}_{split}_processed"]

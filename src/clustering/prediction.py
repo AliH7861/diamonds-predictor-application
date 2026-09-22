@@ -1,42 +1,55 @@
-"""
-Load the saved buyer-segmentation artifact and assign new diamond purchases to clusters.
+"""Load a saved segmentation artifact and assign diamonds to buyer profiles."""
 
-This module restores the selected K-Means model, fitted preprocessor, and saved
-segment profiles, then applies the same purchase feature engineering and
-preprocessing steps to new raw diamond purchases before assigning the nearest cluster.
-
-The returned result includes both the numeric cluster ID and its saved buyer interpretation.
-"""
 from pathlib import Path
+
 import joblib
+import numpy as np
 import pandas as pd
-from .feature_engineering import MODEL_FEATURES, engineer_purchase_features
+from sklearn.metrics.pairwise import euclidean_distances
+
+from .config import SegmentationConfig
+from .feature_engineering import (
+    CUSTOMER_PILLARS,
+    REQUIRED_COLUMNS,
+    build_customer_pillars,
+    build_segmentation_features,
+)
+
 
 def load_segmentation_model(path: str | Path) -> dict:
-    """Load the saved K-Means model, preprocessor, and segment profiles."""
-
+    """Load the selected cluster model, scaler, reference data, and profiles."""
     return joblib.load(path)
 
+
+def _predict_labels(model, matrix: np.ndarray) -> np.ndarray:
+    """Use the selected model or saved hierarchical centroids for assignment."""
+    if hasattr(model, "predict"):
+        return np.asarray(model.predict(matrix), dtype=int)
+    centers = np.asarray(model["centers"])
+    return euclidean_distances(matrix, centers).argmin(axis=1)
+
+
 def assign_purchase_segment(artifact: dict, purchase: dict | pd.DataFrame) -> pd.DataFrame:
-    """Assign one or more raw diamond purchases to their nearest saved cluster."""
+    """Assign raw diamond rows with the training data as percentile reference."""
+    incoming = pd.DataFrame([purchase]) if isinstance(purchase, dict) else purchase.copy()
+    missing = set(REQUIRED_COLUMNS) - set(incoming.columns)
+    if missing:
+        raise ValueError(f"Purchase is missing columns: {sorted(missing)}")
 
-    # Accept either one purchase dictionary or an existing DataFrame.
-    frame = pd.DataFrame([purchase]) if isinstance(purchase, dict) else purchase.copy()
+    reference = artifact.get("reference_frame")
+    if reference is None:
+        raise ValueError("Segmentation artifact does not contain its feature reference data.")
+    combined = pd.concat(
+        [reference[list(REQUIRED_COLUMNS)], incoming[list(REQUIRED_COLUMNS)]],
+        ignore_index=True,
+    )
+    engineered = build_segmentation_features(combined, SegmentationConfig())
+    featured = build_customer_pillars(engineered).tail(len(incoming))
+    matrix = artifact["scaler"].transform(featured[list(CUSTOMER_PILLARS)])
+    labels = _predict_labels(artifact["model"], matrix)
+    names = {profile.cluster_id: profile.name for profile in artifact["profiles"]}
 
-    # Recreate the same purchase-profile features used during clustering.
-    featured = engineer_purchase_features(frame)
-
-    # Apply the saved preprocessor and match the numeric type used by the K-Means centroids.
-    matrix = artifact["preprocessor"].transform(featured[MODEL_FEATURES]).astype(artifact["model"].cluster_centers_.dtype, copy=False)
-
-    # Assign each purchase to its nearest cluster.
-    labels = artifact["model"].predict(matrix)
-
-    result = frame.copy()
-    result["Cluster"] = labels
-
-    # Map cluster IDs back to the saved human-readable buyer interpretations.
-    profile_lookup = artifact["segment_profiles"].set_index("Cluster")["Buyer_Interpretation"]
-    result["Buyer_Interpretation"] = result["Cluster"].map(profile_lookup)
-
+    result = incoming.reset_index(drop=True)
+    result["cluster_id"] = labels
+    result["customer_profile_name"] = result["cluster_id"].map(names)
     return result

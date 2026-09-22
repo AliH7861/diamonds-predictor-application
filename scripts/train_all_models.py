@@ -79,7 +79,7 @@ def _training_data_path(smoke: bool) -> Path:
 
 
 def train_classification(data_path: Path, smoke: bool) -> dict:
-    """Train nine clarity candidates, select by validation Macro F1, and save winners."""
+    """Train three clarity models and select the strongest balanced score."""
     import pandas as pd
 
     from src.classification.preprocessing import prepare_classification_data
@@ -89,18 +89,14 @@ def train_classification(data_path: Path, smoke: bool) -> dict:
     print("\nCLASSIFICATION: XGBoost, ANN, Random Forest", flush=True)
     prepared = prepare_classification_data(data_path)
     runs = []
-    for experiment in (1, 2, 3):
-        for algorithm in ALGORITHMS:
-            print(f"  Training Experiment {experiment} / {algorithm}...", flush=True)
-            run = train_candidate(prepared, experiment, algorithm, smoke)
-            runs.append(run)
-            _print_classification_score(run["metrics"])
+    for algorithm in ALGORITHMS:
+        print(f"  Training Y23 Physical Only / {algorithm}...", flush=True)
+        run = train_candidate(prepared, 1, algorithm, smoke)
+        runs.append(run)
+        _print_classification_score(run["metrics"])
 
-    best = max(runs, key=lambda run: run["metrics"]["Macro_F1"])
-    best_ann = max(
-        (run for run in runs if run["algorithm"] == "ANN"),
-        key=lambda run: run["metrics"]["Macro_F1"],
-    )
+    best = max(runs, key=lambda run: run["metrics"]["Balanced_Selection_Score"])
+    best_ann = next(run for run in runs if run["algorithm"] == "ANN")
     output_dir = PROJECT_ROOT / "models" / "classification"
     report_dir = PROJECT_ROOT / "outputs" / "classification" / "metrics"
     if smoke:
@@ -111,15 +107,13 @@ def train_classification(data_path: Path, smoke: bool) -> dict:
         report_dir / "model_comparison.csv", index=False
     )
 
-    # The assignment requires an ANN result, so the strongest ANN is the primary
-    # deployable artifact. The strongest model of any family remains available as
-    # a transparent benchmark comparison.
-    for run, directory in (
-        (best_ann, output_dir),
-        (best_ann, output_dir / "ann"),
-        (best, output_dir / "benchmark_winner"),
-    ):
-        name = f"Experiment {run['experiment']} - {run['algorithm']}"
+    directories = {
+        "ANN": output_dir / "ann",
+        "XGBoost": output_dir / "xgboost",
+        "Random Forest": output_dir / "random_forest",
+    }
+    for run in runs:
+        name = f"Y23 Physical Only - {run['algorithm']}"
         save_best_model(
             run["model"],
             run["model_type"],
@@ -127,13 +121,22 @@ def train_classification(data_path: Path, smoke: bool) -> dict:
             run["experiment"],
             name,
             run["metrics"],
-            directory,
+            directories[run["algorithm"]],
         )
-    test_metrics = evaluate_on_test(best_ann, prepared)
+    save_best_model(
+        best["model"],
+        best["model_type"],
+        best["preprocessor"],
+        1,
+        f"Y23 Physical Only - {best['algorithm']}",
+        best["metrics"],
+        output_dir,
+    )
+    test_metrics = evaluate_on_test(best, prepared)
     (report_dir / "best_test_metrics.json").write_text(
         json.dumps(test_metrics, indent=2), encoding="utf-8"
     )
-    benchmark_test_metrics = evaluate_on_test(best, prepared)
+    benchmark_test_metrics = test_metrics
     (report_dir / "benchmark_winner_test_metrics.json").write_text(
         json.dumps(benchmark_test_metrics, indent=2), encoding="utf-8"
     )
@@ -147,15 +150,14 @@ def train_classification(data_path: Path, smoke: bool) -> dict:
         "x": 6.45,
         "y": 6.43,
         "z": 3.96,
-        "price": 6000.0,
     }
     prediction = predict_diamonds(load_best_model(output_dir), sample)[0]
     print(
-        f"  Saved course model: Experiment {best_ann['experiment']} / ANN",
+        f"  Saved default model: Y23 Physical Only / {best['algorithm']}",
         flush=True,
     )
-    print(f"  Benchmark winner: Experiment {best['experiment']} / {best['algorithm']}", flush=True)
-    print(f"  Reloaded ANN prediction: {prediction['clarity_family']}", flush=True)
+    print(f"  Selection score: {best['metrics']['Balanced_Selection_Score']:.2f}%", flush=True)
+    print(f"  Reloaded default prediction: {prediction['clarity_family']}", flush=True)
     return {
         "best": best,
         "best_ann": best_ann,
@@ -198,9 +200,9 @@ def train_regression(data_path: Path, smoke: bool) -> dict:
         report_dir / "model_comparison.csv", index=False
     )
     save_best_model(
-        best_ann,
+        best,
         output_dir,
-        provenance={"role": "course-required ANN", "selected_by": "validation MAE among ANNs"},
+        provenance={"role": "course-required model", "selected_by": "validation MAE"},
     )
     save_best_model(best_ann, output_dir / "ann", provenance={"selected_by": "validation MAE"})
     save_best_model(
@@ -208,7 +210,7 @@ def train_regression(data_path: Path, smoke: bool) -> dict:
         output_dir / "benchmark_winner",
         provenance={"role": "algorithm benchmark", "selected_by": "validation MAE"},
     )
-    _, test_metrics = evaluate_on_test(best_ann, prepared)
+    _, test_metrics = evaluate_on_test(best, prepared)
     (report_dir / "best_test_metrics.json").write_text(
         json.dumps(test_metrics, indent=2), encoding="utf-8"
     )
@@ -229,7 +231,7 @@ def train_regression(data_path: Path, smoke: bool) -> dict:
         "z": 3.96,
     }
     prediction = predict_prices(load_best_model(output_dir), sample)[0]
-    print(f"  Saved course model: {best_ann['feature_set']} / ANN", flush=True)
+    print(f"  Saved course model: {best['feature_set']} / {best['algorithm']}", flush=True)
     print(f"  Benchmark winner: {best['feature_set']} / {best['algorithm']}", flush=True)
     print(f"  Reloaded ANN prediction: ${prediction['predicted_price']:,.2f}", flush=True)
     return {

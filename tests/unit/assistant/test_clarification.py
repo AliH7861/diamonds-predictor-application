@@ -89,3 +89,23 @@ def test_common_typos_and_k_budget_are_normalized():
     assert plan.cut == "Ideal"
     assert plan.clarity == "VS"
     assert not plan.needs_clarification
+
+
+def test_current_category_reply_wins_over_categories_quoted_by_assistant():
+    conversation = (
+        "Saved search preferences: maximum budget $2000; pending clarification.\n"
+        "assistant: Did you mean I, SI, VS, VVS, or IF?"
+    )
+
+    plan = build_buying_plan("VS", conversation)
+
+    assert plan.clarity == "VS"
+    assert plan.max_price == 2000
+
+
+def test_good_diamond_is_not_mistaken_for_good_cut():
+    plan = build_buying_plan("Find me a good diamond under $2000", "")
+
+    assert plan is not None
+    assert plan.max_price == 2000
+    assert plan.cut is None

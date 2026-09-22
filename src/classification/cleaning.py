@@ -2,8 +2,8 @@
 Data cleaning and target creation for diamond clarity classification.
 
 This module loads the raw diamond dataset, validates required columns, removes
-duplicates and invalid dimensions, filters extreme carat-to-volume observations,
-and converts the original clarity grades into five broader clarity families.
+invalid physical measurements, and converts the original clarity grades into
+five broader clarity families. Price is not required by this workflow.
 
 Final clarity families:
 I → SI → VS → VVS → IF
@@ -29,7 +29,7 @@ def load_and_clean_data(data_path):
     df = pd.read_csv(data_path)
 
     # Make sure every required modeling column exists.
-    required = {"carat", "cut", "color", "clarity", "depth", "table", "price", "x", "y", "z"}
+    required = {"carat", "cut", "color", "clarity", "depth", "table", "x", "y", "z"}
     missing = required - set(df.columns)
 
     if missing:
@@ -39,26 +39,13 @@ def load_and_clean_data(data_path):
     if "Unnamed: 0" in df.columns:
         df = df.drop(columns="Unnamed: 0")
 
-    # Remove duplicate observations.
-    df = df.drop_duplicates().copy()
-
-    # Keep only diamonds with positive physical dimensions.
-    df = df[(df["x"] > 0) & (df["y"] > 0) & (df["z"] > 0)].copy()
-
-    # Create a simple volume proxy and compare carat weight against it.
-    df["Volume_Proxy"] = df["x"] * df["y"] * df["z"]
-    df["Carat_Per_Volume"] = df["carat"] / df["Volume_Proxy"]
-
-    # Use a wide 3×IQR rule to remove physically unusual carat-to-volume values.
-    q1 = df["Carat_Per_Volume"].quantile(0.25)
-    q3 = df["Carat_Per_Volume"].quantile(0.75)
-    iqr = q3 - q1
-
-    lower_bound = q1 - 3 * iqr
-    upper_bound = q3 + 3 * iqr
-
-    # Keep only observations inside the accepted carat-to-volume range.
-    df = df[df["Carat_Per_Volume"].between(lower_bound, upper_bound)].copy()
+    # Match the Y23 notebook: remove only missing or physically impossible
+    # measurements. Unusual valid geometry remains available to the model.
+    numeric = ["carat", "depth", "table", "x", "y", "z"]
+    for column in numeric:
+        df[column] = pd.to_numeric(df[column], errors="coerce")
+    df = df.dropna(subset=list(required)).copy()
+    df = df.loc[(df[numeric] > 0).all(axis=1)].reset_index(drop=True)
 
     if df.empty:
         raise ValueError("Dataset is empty.")

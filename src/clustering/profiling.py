@@ -1,124 +1,220 @@
-"""
-Create human-readable statistical profiles and cautious buyer interpretations for K-Means segments.
+"""Interpret discovered clusters as product-derived buyer-preference archetypes."""
 
-This module summarizes each cluster using size, price, carat, common quality
-characteristics, numeric feature statistics, and categorical distributions.
+from __future__ import annotations
 
-It also assigns a simple buyer-orientation label based on observed cluster
-patterns such as price level, size, cut, and clarity rather than treating the
-cluster label itself as a known customer identity.
-"""
+from typing import Dict, List, Tuple
 
+import numpy as np
 import pandas as pd
-from .feature_engineering import CATEGORICAL_FEATURES, PROFILE_NUMERIC_FEATURES
+from sklearn.metrics.pairwise import euclidean_distances
 
-def _mode(series: pd.Series) -> str:
-    """Return the most common non-missing value in a series."""
+from .feature_engineering import CUSTOMER_PILLARS
+from .models import SegmentProfile
 
-    values = series.mode(dropna=True)
+FRIENDLY_PILLAR_NAMES = {
+    "Pillar_VisualPresence": "visible size / visual impact",
+    "Pillar_Quality": "certificate quality",
+    "Pillar_Value": "value for money",
+    "Pillar_PriceLevel": "higher market tier",
+    "Pillar_QualityBalance": "balanced quality",
+    "Pillar_Proportion": "proportion consistency",
+    "Pillar_Rarity": "rarity / uniqueness",
+    "Pillar_Milestone": "carat milestone positioning",
+}
 
-    return "Unknown" if values.empty else str(values.iloc[0])
 
-def _quality_family(clarity: str) -> str:
-    """Convert a detailed clarity grade into its broader clarity family."""
+def _market_tier(price_percentile: float) -> str:
+    if price_percentile < 33.0:
+        return "lower-price / budget-oriented"
+    if price_percentile < 67.0:
+        return "mid-market"
+    return "higher-price / premium-market"
 
-    for family in ("IF", "VVS", "VS", "SI", "I"):
-        if clarity.upper().startswith(family):
-            return family
 
-    return clarity
+def _archetype_name(profile_delta: pd.Series) -> str:
+    """Assign a descriptive label from the actual profile pattern.
 
-def interpret_cluster(group: pd.DataFrame, overall: pd.DataFrame) -> tuple[str, str]:
-    """Describe the observed cluster and assign a cautious buyer-orientation label."""
+    The label is downstream interpretation. It is not used to create clusters.
+    """
+    visual = profile_delta["Pillar_VisualPresence"]
+    quality = profile_delta["Pillar_Quality"]
+    value = profile_delta["Pillar_Value"]
+    price = profile_delta["Pillar_PriceLevel"]
+    balance = profile_delta["Pillar_QualityBalance"]
+    proportion = profile_delta["Pillar_Proportion"]
+    rarity = profile_delta["Pillar_Rarity"]
+    milestone = profile_delta["Pillar_Milestone"]
 
-    # Compare the cluster's median price and carat with overall dataset thirds.
-    price = group["price"].median()
-    carat = group["carat"].median()
+    if visual > 0.35 and price > 0.30:
+        return "Premium Visual-Impact Seekers"
+    if quality > 0.35 and price < -0.20:
+        return "Quality-Conscious Budget Buyers"
+    if milestone > 0.35 and value > 0.15:
+        return "Milestone-Conscious Value Buyers"
+    if rarity > 0.40 and balance > 0.15:
+        return "Distinctive Balanced Pragmatists"
+    if rarity > 0.40:
+        return "Rarity / Distinctiveness Seekers"
+    if value > 0.40 and price < 0.0:
+        return "Budget Value Seekers"
+    if quality > 0.40:
+        return "Quality-First Buyers"
+    if visual > 0.40:
+        return "Visual-Impact Seekers"
+    if balance > 0.30 and proportion > 0.20:
+        return "Balanced Mid-Market Pragmatists"
+    return "Balanced Mid-Market Pragmatists"
 
-    price_quantiles = overall["price"].quantile([0.33, 0.67])
-    carat_quantiles = overall["carat"].quantile([0.33, 0.67])
 
-    price_tier = "affordable" if price <= price_quantiles.iloc[0] else "premium-priced" if price >= price_quantiles.iloc[1] else "mid-range"
-    size_tier = "smaller" if carat <= carat_quantiles.iloc[0] else "larger" if carat >= carat_quantiles.iloc[1] else "medium-size"
+def _mode(series: pd.Series) -> object:
+    values = series.mode()
+    return values.iloc[0] if len(values) else None
 
-    # Use the most common cut and broader clarity family to describe quality.
-    cut = _mode(group["cut"])
-    clarity = _quality_family(_mode(group["clarity"]))
 
-    profile = f"{price_tier}, {size_tier} diamonds; mainly {cut} cut with {clarity} clarity"
+def build_profiles(
+    df: pd.DataFrame,
+    scaled_features: np.ndarray,
+    labels: np.ndarray,
+) -> Tuple[
+    List[SegmentProfile],
+    pd.DataFrame,
+    pd.DataFrame,
+]:
+    """Build segment profiles and pairwise profile-distance information."""
+    profiled = df.copy()
+    profiled["cluster_id"] = labels
 
-    # Translate observed cluster characteristics into a cautious buyer-style label.
-    if (
-        size_tier == "larger"
-        and clarity in {"SI", "I"}
-        and cut != "Ideal"
-    ):
-        buyer = "Size-focused buyer"
-    elif price_tier == "premium-priced" and size_tier == "larger":
-        buyer = "Luxury-oriented buyer"
-    elif clarity in {"VS", "VVS", "IF"} and cut in {"Ideal", "Premium"}:
-        buyer = "Quality-focused buyer"
-    elif price_tier == "affordable":
-        buyer = "Value-focused buyer"
-    else:
-        buyer = "Balanced trade-off buyer"
+    medians = profiled.groupby("cluster_id")[list(CUSTOMER_PILLARS)].median()
 
-    return profile, buyer
+    overall_median = profiled[list(CUSTOMER_PILLARS)].median()
+    overall_iqr = (
+        profiled[list(CUSTOMER_PILLARS)].quantile(0.75)
+        - profiled[list(CUSTOMER_PILLARS)].quantile(0.25)
+    ).replace(0.0, np.nan)
 
-def build_cluster_profiles(frame: pd.DataFrame, labels, k: int) -> dict[str, pd.DataFrame]:
-    """Create summary, numeric-statistic, categorical-distribution, and labeled cluster tables."""
+    deltas = (medians - overall_median) / overall_iqr
 
-    labeled = frame.copy()
-    if "BUY_ClarityFamily" not in labeled and "clarity" in labeled:
-        labeled["BUY_ClarityFamily"] = labeled["clarity"].map(_quality_family)
-    labeled["Cluster"] = labels
+    cluster_ids = list(medians.index)
+    centers = np.vstack(
+        [scaled_features[labels == cluster_id].mean(axis=0) for cluster_id in cluster_ids]
+    )
 
-    summaries = []
-    numeric_rows = []
-    categorical_rows = []
+    matrix = pd.DataFrame(
+        euclidean_distances(centers, centers),
+        index=cluster_ids,
+        columns=cluster_ids,
+    )
 
-    # Build separate statistical profiles for every discovered cluster.
-    for cluster, group in labeled.groupby("Cluster", sort=True):
-        profile, buyer = interpret_cluster(group, labeled)
+    pair_rows = []
+    for i, cluster_a in enumerate(cluster_ids):
+        for j in range(i + 1, len(cluster_ids)):
+            cluster_b = cluster_ids[j]
+            pair_rows.append(
+                {
+                    "cluster_a": int(cluster_a),
+                    "cluster_b": int(cluster_b),
+                    "distance": float(matrix.loc[cluster_a, cluster_b]),
+                }
+            )
+    distance_pairs = pd.DataFrame(pair_rows).sort_values(
+        "distance",
+        ascending=False,
+    )
 
-        # High-level cluster summary used for interpretation and reporting.
-        summaries.append({
-            "K": k, "Cluster": int(cluster), "Size": len(group),
-            "Percentage": len(group) / len(labeled) * 100,
-            "Median_Price": group["price"].median(),
-            "Price_Min": group["price"].min(), "Price_Max": group["price"].max(),
-            "Median_Carat": group["carat"].median(),
-            "Main_Cut": _mode(group["cut"]), "Main_Color": _mode(group["color"]),
-            "Main_Clarity": _quality_family(_mode(group["clarity"])),
-            "Purchase_Profile": profile, "Buyer_Interpretation": buyer
-        })
+    profiles: List[SegmentProfile] = []
 
-        # Store detailed numeric statistics for every clustering feature.
-        for feature in PROFILE_NUMERIC_FEATURES:
-            values = group[feature]
+    for cluster_id in cluster_ids:
+        cluster_rows = profiled.loc[profiled["cluster_id"] == cluster_id]
+        # Constant pillars have a zero IQR and therefore no power to define a
+        # cluster. Treat their relative delta as neutral instead of removing
+        # the field required by the interpretation layer.
+        delta = deltas.loc[cluster_id].reindex(CUSTOMER_PILLARS).fillna(0.0)
 
-            numeric_rows.append({
-                "K": k, "Cluster": int(cluster), "Feature": feature,
-                "Mean": values.mean(), "Median": values.median(),
-                "Min": values.min(), "Max": values.max(),
-                "Range": values.max() - values.min(), "Std": values.std()
-            })
+        priorities = [
+            FRIENDLY_PILLAR_NAMES[name] for name in delta.sort_values(ascending=False).head(3).index
+        ]
+        tradeoffs = [
+            FRIENDLY_PILLAR_NAMES[name] for name in delta.sort_values(ascending=True).head(2).index
+        ]
 
-        # Store category counts and proportions for cut, color, and clarity.
-        for feature in CATEGORICAL_FEATURES:
-            counts = group[feature].value_counts(dropna=False)
+        distances = matrix.loc[cluster_id].drop(cluster_id)
+        nearest_id = int(distances.idxmin()) if not distances.empty else None
+        furthest_id = int(distances.idxmax()) if not distances.empty else None
 
-            for category, count in counts.items():
-                categorical_rows.append({
-                    "K": k, "Cluster": int(cluster), "Feature": feature,
-                    "Category": str(category), "Count": int(count),
-                    "Percentage": count / len(group) * 100,
-                    "Is_Most_Common": category == counts.index[0]
-                })
+        name = _archetype_name(delta)
+        share = len(cluster_rows) / len(profiled) * 100.0
 
-    return {
-        "summary": pd.DataFrame(summaries),
-        "numeric": pd.DataFrame(numeric_rows),
-        "categorical": pd.DataFrame(categorical_rows),
-        "labeled": labeled
-    }
+        typical_diamond = {
+            "carat": float(cluster_rows["carat"].median()),
+            "price": float(cluster_rows["price"].median()),
+            "cut": _mode(cluster_rows["cut"]),
+            "color": _mode(cluster_rows["color"]),
+            "clarity": _mode(cluster_rows["clarity_5"]),
+            "carat_band": _mode(cluster_rows["CaratBand"]),
+        }
+
+        pillar_scores = {
+            key.replace("Pillar_", "").lower(): float(value)
+            for key, value in medians.loc[cluster_id].items()
+        }
+
+        summary = (
+            f"May appeal to buyers who prioritize {priorities[0]} "
+            f"and {priorities[1]}, while accepting relatively less "
+            f"emphasis on {tradeoffs[0]}."
+        )
+
+        profiles.append(
+            SegmentProfile(
+                cluster_id=int(cluster_id),
+                name=name,
+                segment_share_pct=float(share),
+                market_tier=_market_tier(
+                    float(
+                        medians.loc[
+                            cluster_id,
+                            "Pillar_PriceLevel",
+                        ]
+                    )
+                ),
+                top_priorities=priorities,
+                tradeoffs=tradeoffs,
+                pillar_scores=pillar_scores,
+                typical_diamond=typical_diamond,
+                summary=summary,
+                nearest_profile_id=nearest_id,
+                most_distant_profile_id=furthest_id,
+            )
+        )
+
+    # Resolve duplicate human-readable names without changing cluster semantics.
+    name_counts: Dict[str, int] = {}
+    for profile in profiles:
+        name_counts[profile.name] = name_counts.get(profile.name, 0) + 1
+
+    resolved_profiles: List[SegmentProfile] = []
+    for profile in profiles:
+        if name_counts[profile.name] > 1:
+            profile = SegmentProfile(
+                **{
+                    **profile.__dict__,
+                    "name": f"{profile.name} — Cluster {profile.cluster_id}",
+                }
+            )
+        resolved_profiles.append(profile)
+
+    return resolved_profiles, medians, distance_pairs
+
+
+def attach_profile_names(
+    df: pd.DataFrame,
+    labels: np.ndarray,
+    profiles: List[SegmentProfile],
+) -> pd.DataFrame:
+    """Attach cluster ID and profile name to each segmented diamond."""
+    mapping = {profile.cluster_id: profile.name for profile in profiles}
+
+    out = df.copy()
+    out["cluster_id"] = labels
+    out["customer_profile_name"] = out["cluster_id"].map(mapping)
+    return out

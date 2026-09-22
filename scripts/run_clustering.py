@@ -1,4 +1,4 @@
-"""Run buyer segmentation for K = 3, 5, 7, and 10 and save the selected model."""
+"""Compare buyer segmentation methods and save the selected model and profiles."""
 
 import argparse
 from pathlib import Path
@@ -45,12 +45,15 @@ def run_inside_docker(smoke: bool) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--smoke", action="store_true", help="Use 2,500 rows for a quick check")
+    parser.add_argument("--docker", action="store_true", help="Run in the project image")
     parser.add_argument("--inside-docker", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
-    if args.inside_docker:
+    if args.inside_docker or not args.docker:
         from src.clustering.pipeline import run_buyer_segmentation
 
-        run_buyer_segmentation(smoke=args.smoke)
+        result = run_buyer_segmentation(smoke=args.smoke)
+        print("\nSelected solution:", result["selected_solution"])
+        print(result["comparison"].to_string(index=False))
     else:
         run_inside_docker(args.smoke)
 

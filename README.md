@@ -6,11 +6,11 @@ This project uses one structured diamond dataset to classify clarity, predict pr
 
 | Task | Primary result |
 | --- | --- |
-| Clarity classification ANN | 83.85% test accuracy; 78.81% Macro F1 |
-| Best clarity benchmark | XGBoost: 86.83% test accuracy; 83.66% Macro F1 |
-| Price regression ANN | $271.15 test MAE; 0.9798 R² |
-| Best price benchmark | XGBoost: $245.44 test MAE; 0.9834 R² |
-| Buyer segmentation | K = 3; silhouette = 0.186; stability ARI = 0.938 |
+| Clarity classification | Physical-only ordinal comparison: ANN, XGBoost, Random Forest |
+| Selected clarity model | XGBoost: 56.49% test accuracy; 47.67% Macro F1 |
+| Selected price model | XGBoost: $245.44 test MAE; 0.9834 R² |
+| ANN comparison | $271.15 test MAE; 0.9798 R² |
+| Buyer segmentation | K-Means K = 5; silhouette = 0.171; stability ARI = 0.982 |
 | Assistant | Structured search + saved models + Chroma RAG + local Qwen |
 
 ## Setup
@@ -32,10 +32,25 @@ Download the Kaggle Diamonds dataset to `data/raw/diamonds.csv`, then run:
 python scripts/train_all_models.py --smoke
 python scripts/test_saved_models.py
 ollama serve
-python -m streamlit run app.py
+powershell -ExecutionPolicy Bypass -File scripts\start_dev.ps1
 ```
 
-The complete developer guide is [docs/TECHNICAL_README.md](docs/TECHNICAL_README.md).
+Open the React assistant at `http://localhost:5173/`. The launcher starts the
+local Python backend once, waits for model and dataset resources to load, and keeps
+conversation state in the browser between page refreshes.
+
+## Documentation map
+
+| Guide | Use it for |
+| --- | --- |
+| [Capstone Presentation Guide](CAPSTONE_PRESENTATION_README.md) | The project story, methodology, results, findings, limitations, and likely presentation questions |
+| [System Architecture and File Guide](SYSTEM_ARCHITECTURE_README.md) | Diagrams, file-by-file responsibilities, function connections, runtime flows, and debugging |
+| [Technical README](docs/TECHNICAL_README.md) | Detailed setup, APIs, testing, Docker, CI/CD, artifacts, and troubleshooting |
+| [Assistant Debug Map](src/assistant/README.md) | The live assistant request path and its seven routes |
+
+The first two guides are written as learning references: start with the presentation guide to
+understand **why** the project was built, then use the system guide to understand **how** the files
+work together.
 
 ## 1. Dataset and original rows
 
@@ -50,7 +65,7 @@ The source contains 53,940 rows. Each row describes one diamond.
 | `clarity` | Clarity grade | Classification target; regression input |
 | `depth` | Total depth percentage | Keep |
 | `table` | Top facet width percentage | Keep |
-| `price` | Price in US dollars | Regression target; classification experiment input |
+| `price` | Price in US dollars | Regression target only; excluded from classification |
 | `x`, `y`, `z` | Length, width, and height | Keep after physical validation |
 
 Initial inspection found an exported index, 146 duplicate feature rows, 20 rows with a zero physical dimension, and no missing values in the modeling columns. The dataset has no customer IDs, demographics, or purchase histories. Segmentation therefore represents anonymous purchase profiles rather than tracked customers.
@@ -99,7 +114,7 @@ Raw measurements tell the model what was measured. Engineered features express r
 | Aspect ratio and asymmetry | Describe shape and dimensional balance |
 | Depth-to-face and table-to-depth | Describe proportions rather than isolated measurements |
 | Weight per face/volume | Show how carat is distributed physically |
-| Price per carat/area/volume | Measure value relative to weight and visible size |
+| Physical density and proportion ratios | Describe geometry without using market price |
 | Expected size at a carat weight | Compare whether a diamond faces up larger or smaller than peers |
 | Distance from common carat thresholds | Represent buyer-relevant 0.5, 0.75, 1.0, 1.5, and 2.0 ct points |
 | Peer rarity and quality-at-size | Add comparable market and buyer context |
@@ -107,8 +122,8 @@ Raw measurements tell the model what was measured. Engineered features express r
 ### What feature engineering revealed
 
 - Physical-only clarity models plateaued around the low-to-mid 50% range because geometry could not replace microscopic evidence.
-- Adding price improved clarity classification dramatically. Market price carried quality information absent from physical measurements.
-- Price-relative features improved the representation again by describing price in relation to size.
+- Price and every price-derived hint were removed from clarity classification because they introduced market information rather than physical clarity evidence.
+- Mutual information ranks physical candidates on training rows, then correlation pruning removes redundant geometry before preprocessing.
 - Estimated volume and visible size were useful concepts, but several ratios represented almost the same geometry. Extra redundant ratios increased complexity without reliable validation gains.
 - Some raw features were weak or misleading alone. Depth barely correlated linearly with price, but proportion and interaction features helped interpret it in context.
 - Human-readable regression features could not replace raw geometry. The hybrid representation was strongest.
@@ -125,40 +140,29 @@ The eight original grades were grouped into five ordered families:
 
 The dataset lacks the microscopic evidence needed to separate every fine grade consistently. The five-family target better matches the available information.
 
-### Experiments
+### Shared physical-only comparison
 
-| Experiment | Question | Feature change | Finding |
-| --- | --- | --- | --- |
-| 1: Physical | Can geometry, carat, cut, and color predict clarity? | Physical and categorical data | Some signal; heavy overlap |
-| 2: Add price | Does known market price contain extra clarity information? | Experiment 1 + price | Large improvement for all models |
-| 3: Price context | Are relative value relationships useful beyond raw price? | Experiment 2 + price-per-size features | Strongest representation |
+All three maintained algorithms use the same 53,920 physically valid rows, the same stratified 70/15/15 split, and the same Y23 representation. The representation contains carat, dimensions, depth, table, cut, color, and physical ratios. It never contains `price` or a feature derived from price.
 
-All nine combinations used the same stratified split. Precision, recall, and F1 are macro averages so every clarity family receives equal weight.
+Feature selection is fitted only on training rows. Mutual information ranks numeric candidates, correlation pruning removes near-duplicates at a 0.75 threshold, numeric values are median-imputed and scaled, and cut/color are one-hot encoded.
 
-| Experiment | Model | Accuracy | Precision | Recall | F1 | Weighted F1 |
-| --- | --- | ---: | ---: | ---: | ---: | ---: |
-| 1 | XGBoost | 52.13% | 40.70% | 43.40% | 41.52% | 52.42% |
-| 1 | ANN | 52.64% | 44.77% | 30.86% | 31.94% | 50.57% |
-| 1 | Random Forest | 56.28% | 48.64% | 36.18% | 38.50% | 54.95% |
-| 2 | XGBoost | 85.02% | 81.48% | 79.44% | 80.32% | 84.98% |
-| 2 | ANN | 83.82% | 82.41% | 75.38% | 78.31% | 83.70% |
-| 2 | Random Forest | 81.56% | 83.75% | 66.02% | 71.73% | 81.11% |
-| 3 | XGBoost | **86.76%** | 84.16% | **83.00%** | **83.48%** | **86.74%** |
-| 3 | ANN | 84.61% | 83.81% | 75.08% | 78.47% | 84.46% |
-| 3 | Random Forest | 86.45% | **88.12%** | 77.24% | 81.57% | 86.31% |
+The five clarity families are ordered, so each algorithm predicts four cumulative boundaries: above I, above SI, above VS, and above VVS. Those boundary probabilities are converted into the five final family probabilities.
 
-### Primary classification model
+### Model comparison and default selection
 
-The assignment model is the Experiment 3 ANN.
+The maintained run trains exactly three models:
 
-| Split | Accuracy | Precision | Recall | F1 | Weighted F1 | Within one family |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Validation | 84.61% | 83.81% | 75.08% | 78.47% | 84.46% | 99.70% |
-| Test | **83.85%** | **82.53%** | **76.19%** | **78.81%** | **83.72%** | **99.71%** |
+| Model | Shared steps | Recorded final validation result |
+| --- | --- | ---: |
+| Random Forest | Y23 physical features + ordinal boundaries | 55.91% accuracy; 44.00% Macro F1 |
+| XGBoost | Y23 physical features + ordinal boundaries | **57.39% accuracy; 49.07% Macro F1** |
+| ANN | Y23 physical features + four sigmoid ordinal outputs | 50.20% accuracy; 26.14% Macro F1 |
 
-Most errors occurred between neighbouring families. The model is an estimate rather than a replacement for professional grading. Experiment 3 XGBoost remained the strongest benchmark at **86.83% test accuracy and 83.66% Macro F1**.
+The maintained full run selected XGBoost with 57.39% validation accuracy, 50.21% macro precision, 49.37% macro recall, 49.07% macro F1, and 49.37% balanced accuracy. Its untouched-test result was 56.49% accuracy and 47.67% macro F1. Random Forest and ANN remain saved for comparison.
 
-The clarity use case assumes that listed price is known. The price workflow below answers a different use case where clarity is known. The models do not independently discover both unknown values from the remaining measurements.
+A completed training run calculates an equal-weighted **Balanced Selection Score** from macro precision, macro recall, macro F1, and balanced accuracy. The model with the highest validation score becomes the default saved classifier. All three artifacts remain available under `models/classification/ann`, `xgboost`, and `random_forest`.
+
+Most errors occur between neighbouring families. Physical data cannot fully reproduce professional clarity grading because the dataset has no microscopic inclusion evidence.
 
 ## 6. Price regression
 
@@ -184,35 +188,66 @@ Price is the target. The shared split contains 37,729 training, 8,085 validation
 
 ### Primary regression model
 
-The required course model is the HUMAN_PLUS_RAW ANN.
+The required course model is HUMAN_PLUS_RAW XGBoost.
 
 | Split | MAE | Median AE | RMSE | R² | MAPE | Within 10% |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Validation | $279.49 | $103.44 | $552.22 | 0.9799 | 6.99% | 77.45% |
-| Test | **$271.15** | **$97.36** | **$557.31** | **0.9798** | **6.89%** | **77.61%** |
+| Validation | $253.80 | $90.75 | $506.34 | 0.9831 | 5.99% | 82.00% |
+| Test | **$245.44** | **$87.20** | **$505.07** | **0.9834** | **5.89%** | **82.46%** |
 
-Human features added meaning but lost exact information when used alone. Combining human and raw features produced the strongest representation. XGBoost was the best held-out benchmark at **$245.44 MAE and 0.9834 R²**.
+Human features added meaning but lost exact information when used alone. Combining human and raw features produced the strongest representation. The comparison ANN remains available at **$271.15 test MAE and 0.9798 R²**.
 
 ## 7. Buyer segmentation
 
-Each valid diamond is treated as an anonymous purchase profile. The rebuilt representation uses log-scaled price, carat, face area, volume, and price per carat; robustly scaled depth, table, and aspect ratio; and weighted one-hot cut, color, and five-family clarity. This avoids repeatedly counting `x/y/z` and prevents 17 category columns from outweighing the eight numeric measures solely because there are more columns.
+### Objective and representation
 
-| K | Silhouette | Stability ARI | Davies-Bouldin | Smallest cluster | Checks passed | Selection score |
-| ---: | ---: | ---: | ---: | ---: | --- | ---: |
-| 3 | **0.186** | **0.938** | 2.049 | 21.07% | **Yes** | **0.940** |
-| 5 | 0.132 | 0.459 | 2.216 | 12.57% | No | 0.330 |
-| 7 | 0.123 | 0.619 | 2.112 | 0.004% | No | 0.227 |
-| 10 | 0.113 | 0.587 | **1.795** | 0.004% | No | 0.140 |
+Each valid diamond is treated as an anonymous purchase profile. Raw measurements are converted into eight customer-oriented pillars: visual presence, certificate quality, value, price level, quality balance, proportion consistency, rarity, and carat-milestone positioning. This gives the clusters a buyer-facing meaning while preventing raw `x/y/z` measurements from receiving equal weight simply because three geometry columns exist. Rows with several extreme geometry signals are held out before clustering so measurement anomalies cannot become fake customer segments.
 
-K = 3 was the only candidate to pass separation, repeat-fit stability, minimum-size, and interpretation checks. K = 7 and K = 10 created near-empty clusters, while K = 5, K = 7, and K = 10 were unstable across repeat fits. The complete audit is exported to `outputs/clustering/tables/k_comparison.csv` and `cluster_quality_checks.csv`.
+### Methods and selection
 
-| Cluster | Size | Median price | Median carat | Main cut | Main clarity | Purchase profile | Interpretation |
-| ---: | ---: | ---: | ---: | --- | --- | --- | --- |
-| 0 | 11,333 | $5,010 | 1.03 | Premium | SI | Premium-priced, larger diamonds | Size-focused buyer |
-| 1 | 24,529 | $899 | 0.38 | Ideal | VS | Affordable, smaller diamonds | Quality-focused buyer |
-| 2 | 17,913 | $5,008 | 1.02 | Ideal | SI | Premium-priced, larger diamonds | Luxury-oriented buyer |
+K-Means, diagonal Gaussian Mixture Models, and sampled Ward Agglomerative clustering were each tested at K = 3, 5, 7, and 10. Selection combines silhouette, Davies-Bouldin, Calinski-Harabasz, cluster balance, minimum and maximum cluster share, centroid separation, within-cluster spread, stability or membership confidence, coverage, and an interpretability score that discourages unnecessary fragmentation.
 
-The 0.186 silhouette shows modest separation, while the 0.938 stability ARI shows that the three-cluster structure is repeatable. These are broad tendencies; real buyers overlap.
+| Solution | K | Silhouette | Stability ARI | Davies-Bouldin | Smallest segment | Selection score |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| **K-Means** | **5** | **0.171** | **0.982** | **1.730** | **10.60%** | **0.732** |
+| K-Means | 3 | 0.179 | 0.992 | 1.926 | 30.16% | 0.700 |
+| K-Means | 10 | 0.148 | 0.988 | 1.642 | 7.53% | 0.698 |
+| Agglomerative | 5 | 0.155 | n/a | 1.854 | 11.90% | 0.670 |
+| GMM | 3 | 0.155 | membership confidence 0.897 | 2.049 | 27.95% | 0.651 |
+
+K-Means with K = 5 was selected. K = 10 achieved tighter mathematical separation but divided the market into twice as many profiles; the practical selection score favored K = 5 because it retained strong stability and sensible segment sizes while producing a more understandable set of archetypes. DBSCAN and HDBSCAN were explored earlier but were not retained because they collapsed the market into a dominant density group or labelled too many rows as noise.
+
+### Final product-derived archetypes
+
+| Buyer-preference archetype | Share | Typical diamond | Main priorities | Main trade-off |
+| --- | ---: | --- | --- | --- |
+| Premium Visual-Impact Seekers | 14.54% | 1.23 ct, $7,363, Ideal, SI | visible size, price tier, rarity | milestone positioning |
+| Milestone-Conscious Value Buyers | 25.32% | 0.76 ct, $3,239, Ideal, SI | carat milestone, value, proportions | quality balance |
+| Quality-Conscious Budget Buyers | 29.24% | 0.33 ct, $772, Ideal, VS | certificate quality, proportions, value | higher price tier |
+| Balanced Mid-Market Pragmatists | 20.30% | 0.72 ct, $2,639, Very Good, SI | quality balance, rarity, milestone | value emphasis |
+| Rarity / Distinctiveness Seekers | 10.60% | 1.00 ct, $3,853, Good, SI | rarity, visible size, milestone | proportion consistency |
+
+The full comparison is saved in `outputs/clustering/tables/method_comparison.csv`. The enriched dataset is saved as `diamonds_with_customer_profiles.csv`, and the reusable structured registry is saved under `models/clustering/profile_registry.json`.
+
+![Segment sizes](docs/assets/segmentation/segment_sizes.png)
+
+The segment-size chart verifies that every selected group represents a meaningful part of the market.
+
+![Profile heatmap](docs/assets/segmentation/profile_heatmap.png)
+
+The heatmap shows how each profile differs from the overall dataset across the eight preference pillars.
+
+![Cluster projection](docs/assets/segmentation/pca_segments.png)
+
+The PCA view is a two-dimensional documentation aid. Overlap is expected because diamond preferences form a continuum.
+
+![Method comparison](docs/assets/segmentation/method_comparison.png)
+
+The method comparison shows the best practical score achieved by each retained clustering family.
+
+> **Interpretation limitation:** these profiles are product-derived buyer-preference archetypes and are not validated psychological customer segments.
+
+Run the complete workflow with `python scripts/run_clustering.py`, or use `python scripts/run_clustering.py --smoke` for a quick structural check. Application code can pass an existing cleaned DataFrame directly to `run_segmentation(df)` without loading the CSV again.
 
 ## 8. AI diamond assistant
 
@@ -221,13 +256,12 @@ The assistant lets users ask ordinary questions instead of inspecting tables, no
 | Need | Component |
 | --- | --- |
 | Exact dataset constraints | Pandas search |
-| Similar alternatives | Scaled numeric + encoded categorical distance |
-| Price estimate | Saved regression ANN |
-| Clarity estimate | Saved classification ANN |
-| Buyer segment | Saved K-Means clustering pipeline |
+| Ranked alternatives | Auditable filtering, ranking, and result diversity |
+| Price estimate | Saved HUMAN_PLUS_RAW XGBoost regressor |
+| Clarity estimate | Saved validation-selected classifier |
+| Buyer segment | Saved multi-method segmentation pipeline and profile registry |
 | Project/domain explanation | Heading-aware hybrid retrieval + Chroma RAG |
 | Current search preferences | Compact structured conversation state |
-| Durable preferences | Separate vector memory collection |
 | Natural response | Local Qwen through Ollama |
 
 ```mermaid
@@ -235,19 +269,39 @@ flowchart LR
     A[Natural question] --> B[Route intent]
     B --> C[Clarify missing details]
     C --> D[Dataset search]
-    C --> E[Similarity search]
-    C --> F[Saved ANN inference]
-    C --> G[RAG and memory]
+    C --> F[Saved model inference]
+    C --> G[RAG knowledge]
     D --> H[Compact evidence]
-    E --> H
     F --> H
     G --> H
     H --> I[Local Qwen answer]
 ```
 
-Deterministic tools perform calculations and filtering. RAG uses six focused knowledge documents, heading-aware chunks, embeddings, lexical reranking, and deterministic topic expansion. The LLM explains bounded evidence rather than memorizing 53,000 rows or inventing predictions. Greetings and direct dataset operations skip RAG entirely.
+Deterministic tools perform calculations and filtering. RAG uses twelve focused knowledge documents, heading-aware chunks, embeddings, lexical reranking, and deterministic topic expansion. The LLM explains bounded evidence rather than memorizing 53,000 rows or inventing predictions. Greetings and direct dataset operations skip RAG entirely.
 Exact count requests use Pandas and return directly without an embedding or LLM call. Each chat
 passes only its compact filters and latest exchange instead of repeatedly sending the full history.
+
+### Assistant code organization
+
+The live assistant is divided into focused files instead of one large chatbot script:
+
+| File | Responsibility |
+| --- | --- |
+| `routing.py` | Choose one of seven supported intents and its evidence source |
+| `search_planning.py` | Extract and validate budget, size, category, and follow-up search state |
+| `clarification.py` | Normalize text and extract saved-model inputs |
+| `data_analysis.py` | Execute clear statistics, trends and price analysis with Pandas |
+| `dataset_search.py` / `comparison.py` | Search real rows and compare only displayed results |
+| `domain_answers.py` | Answer fixed cut, color, clarity, and profile vocabulary directly |
+| `retrieval.py` / `vector_store.py` | Retrieve grounded project and diamond knowledge |
+| `model_evidence.py` | Call saved price, clarity, and segmentation artifacts |
+| `tool_executor.py` | Validate and execute combined model requests |
+| `prompt_builder.py` / `generation.py` | Build compact evidence and stream the final natural-language response |
+| `service.py` | Orchestrate the complete request and expose developer audit evidence |
+| `api.py` | Serve the React client over HTTP and streamed NDJSON |
+
+Historical V8.4 control-plane modules remain under `src/assistant/legacy/` for evaluation and design
+reference. They are not called by the live React/backend request path.
 
 ### React frontend
 
@@ -273,7 +327,7 @@ npm run dev
 
 Open `http://127.0.0.1:5173`. Vite proxies assistant requests to the local backend during development. A production deployment can set `VITE_ASSISTANT_API_URL` and the optional matching API token.
 
-### Streamlit fallback
+### Legacy Streamlit fallback
 
 **One-process local mode:**
 
@@ -314,11 +368,11 @@ Normal mode shows chat and recommendations. Developer mode uses the same respons
 
 | Component | Selected approach | Purpose |
 | --- | --- | --- |
-| Clarity | Experiment 3 ANN | Predict five clarity families |
-| Clarity benchmark | Experiment 3 XGBoost | Strongest comparison |
-| Price | HUMAN_PLUS_RAW ANN | Required regression model |
-| Price benchmark | HUMAN_PLUS_RAW XGBoost | Strongest comparison |
-| Segmentation | K-Means, K = 3 | Describe broad purchase profiles |
+| Clarity | Selected physical-only model | Predict five ordered clarity families |
+| Clarity alternatives | ANN, XGBoost, Random Forest | Compare one shared representation |
+| Price | HUMAN_PLUS_RAW XGBoost | Required and selected regression model |
+| Price alternatives | ANN and Random Forest | Same-split algorithm comparison |
+| Segmentation | K-Means, K = 5 | Describe buyer-preference product profiles |
 | Retrieval | Pandas + embeddings/Chroma | Exact matches and explanations |
 | Assistant | Router + local Qwen | Combine evidence naturally |
 
@@ -330,16 +384,16 @@ Normal mode shows chat and recommendations. Developer mode uses the same respons
 4. Price was easier to predict because the dataset contained its strongest drivers.
 5. Model failure revealed real limits in the data and domain.
 6. Human regression features complemented raw measurements but could not replace them.
-7. Three broad clusters were more useful than extra, weakly separated groups.
+7. Five stable preference profiles balanced mathematical separation with practical interpretation.
 8. Structured data, ML, RAG, and language generation each solved a different assistant problem.
 
 ## 11. Limitations
 
 - No microscopic inclusion information.
 - No customer IDs, demographics, or repeated purchases.
-- Clarity estimation assumes price is known; price estimation assumes clarity is known.
-- Purchase profiles overlap and are not fixed buyer personalities.
-- K-Means assumes hard, roughly spherical groups.
+- Clarity estimation uses physical and categorical attributes only; price estimation uses known clarity as an input.
+- Purchase profiles overlap and are product-derived archetypes, not fixed buyer personalities.
+- The selected K-Means result uses hard, roughly spherical groups even though GMM and hierarchical alternatives were also evaluated.
 - Local RAG depends on curated knowledge, embeddings, and a small local LLM.
 - Historical Kaggle data may not represent every current market.
 - A hosted frontend depends on the local backend and secure tunnel remaining online.
@@ -350,7 +404,7 @@ This project answered the main questions I set out to explore, but it also revea
 
 ### Classification
 
-The clarity classification experiments showed that the features available in the Diamonds dataset provide useful information, but they do not contain everything that determines a professional clarity grade. Physical measurements and engineered geometric features provided some signal, but performance improved substantially when price was included.
+The clarity classification experiments showed that the features available in the Diamonds dataset provide useful information, but they do not contain everything that determines a professional clarity grade. Physical measurements and engineered geometric features provided some signal, but the dataset still lacks microscopic inclusion evidence.
 
 With more time, I would:
 
@@ -358,8 +412,8 @@ With more time, I would:
 * **Research the diamond-grading process further** and identify additional features that could realistically be approximated from structured data.
 * **Experiment with more sophisticated classification approaches** rather than stopping with the ANN, Random Forest, and XGBoost models used in this project.
 * **Investigate more advanced feature engineering** based specifically on how clarity is determined, rather than creating additional generic mathematical ratios.
-* Explore whether the five clarity families could be modeled as an **ordered problem**, since I → SI → VS → VVS → IF represents increasing clarity rather than five completely unrelated categories.
-* Investigate whether additional external information could improve the model without relying as heavily on price as a proxy for missing quality information.
+* Continue refining the **ordered classification** design now used for I → SI → VS → VVS → IF.
+* Investigate external physical or grading information that improves clarity prediction without using price as a proxy.
 
 The main question for future classification work would be:
 
@@ -389,18 +443,18 @@ toward:
 
 ### Clustering and Buyer Segmentation
 
-K-Means with **K = 3** produced the most useful segmentation among the values tested. Its **0.186 silhouette** shows that the groups overlap, while its **0.938 stability ARI** shows that repeated fits recover a similar structure.
+K-Means with **K = 5** produced the most useful practical segmentation after comparing K-Means, Gaussian mixtures, and hierarchical clustering. Its **0.171 silhouette** shows that the groups overlap, while its **0.982 stability ARI** shows that repeated fits recover a similar structure.
 
-One limitation of the current work is that I mainly investigated different values of **K within K-Means**. I did not extensively test whether K-Means itself was the best clustering method for this dataset.
+The current work compares three useful clustering families, but it still assigns a single profile to each product and evaluates stability most directly for K-Means.
 
 With more time, I would:
 
-* **Compare alternative clustering algorithms** instead of assuming K-Means is the best approach.
-* Investigate methods that can represent overlapping or less regularly shaped groups, rather than requiring every purchase to belong rigidly to one K-Means cluster.
+* Extend stability analysis to Gaussian mixtures and hierarchical clustering using repeated samples.
+* Investigate soft profile membership so borderline diamonds can express more than one preference pattern.
 * Compare whether alternative methods produce clusters with **better separation and more meaningful business interpretations**.
 * Investigate whether the current feature combination causes some dimensions, such as price or diamond size, to influence the segments more strongly than intended.
 * Experiment with clustering **different groups of features separately**, such as value-related features, quality-related features, and physical-size features.
-* Study the three current clusters in greater detail to understand **why certain purchase profiles sit between multiple clusters**.
+* Study the five current profiles in greater detail to understand **why certain purchases sit between multiple groups**.
 * Investigate whether the moderate silhouette score reflects a limitation of K-Means or whether diamond purchasing behaviour genuinely exists on a continuous spectrum without sharply separated groups.
 
 The most important future clustering question would be:

@@ -2,7 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { streamChat } from "./api";
 
-const STORAGE_KEY = "diamond-react-conversations-v1";
+// Versioning the key intentionally invalidates conversations created by the
+// earlier demo. New conversations continue to persist normally under v2.
+const STORAGE_KEY = "diamond-react-conversations-v2";
+const LEGACY_STORAGE_KEYS = ["diamond-react-conversations-v1"];
 
 function Icon({ name, size = 22 }) {
   const paths = {
@@ -70,20 +73,81 @@ function family(value) {
   return grade;
 }
 
-function MatchCards({ result }) {
+function MatchTable({ result }) {
   const rows = result?.similar_matches?.length ? result.similar_matches : result?.matches;
   if (!rows?.length) return null;
   return (
-    <div className="match-grid">
-      {rows.slice(0, 3).map((row, index) => (
-        <article className="match-card" key={`${row.price}-${row.carat}-${index}`}>
-          <span className="match-card__number">0{index + 1}</span>
-          <strong>${Number(row.price).toLocaleString()}</strong>
-          <p>{Number(row.carat).toFixed(2)} carat · {row.cut} cut</p>
-          <p>{row.color} color · {family(row.clarity)} clarity</p>
-        </article>
-      ))}
+    <div className="match-table-wrap">
+      <table className="match-table">
+        <thead><tr><th>#</th><th>Price</th><th>Carat</th><th>Cut</th><th>Color</th><th>Clarity</th><th>Why it stands out</th></tr></thead>
+        <tbody>
+          {rows.map((row, index) => (
+            <tr key={row._row_id ?? `${row.price}-${row.carat}-${index}`}>
+              <td>{index + 1}</td>
+              <td>${Number(row.price).toLocaleString()}</td>
+              <td>{Number(row.carat).toFixed(2)}</td>
+              <td>{row.cut}</td>
+              <td>{row.color}</td>
+              <td>{family(row.clarity)}</td>
+              <td>{row.why_it_stands_out || "Dataset match"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
+  );
+}
+
+function DeveloperPanel({ result }) {
+  if (!result?.diagnostics) return null;
+  const detail = result.diagnostics;
+  return (
+    <details className="developer-panel">
+      <summary>Execution details · {detail.request_id}</summary>
+      <div className="developer-grid">
+        <div><span>Route</span><strong>{detail.route?.level_1} / {detail.route?.level_2} / {detail.route?.level_3}</strong></div>
+        <div><span>Total latency</span><strong>{Number(detail.total_ms || 0).toFixed(1)} ms</strong></div>
+        <div><span>LLM / embeddings</span><strong>{detail.llm_calls || 0} / {detail.embedding_calls || 0}</strong></div>
+        <div><span>Tools executed</span><strong>{detail.tools_executed?.join(", ") || "deterministic response"}</strong></div>
+      </div>
+      <h4>1. Question</h4>
+      <pre>{detail.question}</pre>
+      <h4>2. Route</h4>
+      <pre>{JSON.stringify(detail.route, null, 2)}</pre>
+      <h4>3. Raw plan</h4>
+      <pre>{JSON.stringify(detail.raw_criteria, null, 2)}</pre>
+      <h4>4. Validated plan and conversation state</h4>
+      <pre>{JSON.stringify({
+        accepted: detail.validated_criteria,
+        dropped: detail.dropped_candidates,
+        problems: detail.validation_problems,
+        state: detail.state_changes,
+      }, null, 2)}</pre>
+      <h4>5. Dataset execution</h4>
+      <pre>{JSON.stringify({
+        filters: detail.dataset_filters,
+        qualifyingRows: detail.dataset_qualifying_rows,
+        rankingStrategy: detail.dataset_ranking_strategy,
+        selectedIds: detail.selected_result_ids,
+        rows: detail.dataset_preview,
+      }, null, 2)}</pre>
+      <h4>6. RAG</h4>
+      <pre>{JSON.stringify({ queries: detail.rag_queries, chunks: detail.rag_chunks }, null, 2)}</pre>
+      <h4>7. Generation evidence</h4>
+      <pre>{JSON.stringify({
+        evidence: detail.evidence_payload,
+        prompt: detail.generation_prompt,
+        sources: detail.answer_sources,
+        models: detail.model_versions,
+        cache: detail.cache,
+        timings: detail.stage_timings_ms,
+        firstTokenMs: detail.time_to_first_token_ms,
+        warnings: detail.warnings,
+        errors: detail.errors,
+      }, null, 2)}</pre>
+      <h4>8. Final answer</h4>
+      <pre>{detail.final_answer}</pre>
+    </details>
   );
 }
 
@@ -93,6 +157,11 @@ export default function App() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem("diamond-theme") || "dark");
+
+  useEffect(() => {
+    LEGACY_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
+  }, []);
+  const [developerMode, setDeveloperMode] = useState(false);
   const endRef = useRef(null);
 
   const active = useMemo(
@@ -209,6 +278,9 @@ export default function App() {
             <Icon name={theme === "dark" ? "sun" : "moon"} size={18}/>
             <span>{theme === "dark" ? "Light" : "Dark"}</span>
           </button>
+          <button className="theme-button" onClick={() => setDeveloperMode(!developerMode)} aria-pressed={developerMode}>
+            <span>{developerMode ? "Hide details" : "Developer"}</span>
+          </button>
         </header>
 
         <div className="workspace">
@@ -248,7 +320,8 @@ export default function App() {
                     <div className="message__label">{message.role === "user" ? "You" : "Diamond adviser"}</div>
                     <div className="message__body">
                       {message.content ? <ReactMarkdown>{message.content}</ReactMarkdown> : <span className="typing"><i/><i/><i/></span>}
-                      <MatchCards result={message.result}/>
+                      <MatchTable result={message.result}/>
+                      {developerMode && <DeveloperPanel result={message.result}/>}
                     </div>
                   </article>
                 ))}

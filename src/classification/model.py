@@ -37,6 +37,32 @@ def build_ann(input_dim: int, seed: int = 42):
     return model
 
 
+def build_ordinal_ann(input_dim: int, seed: int = 42):
+    """Build an ANN that predicts the four ordered clarity boundaries."""
+    import tensorflow as tf
+
+    tf.keras.backend.clear_session()
+    tf.keras.utils.set_random_seed(seed)
+    model = tf.keras.Sequential(
+        [
+            tf.keras.layers.Input(shape=(input_dim,)),
+            tf.keras.layers.Dense(192, activation="gelu"),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.Dropout(0.08),
+            tf.keras.layers.Dense(128, activation="gelu"),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.Dropout(0.08),
+            tf.keras.layers.Dense(64, activation="gelu"),
+            tf.keras.layers.Dense(4, activation="sigmoid"),
+        ]
+    )
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=5e-4),
+        loss="binary_crossentropy",
+    )
+    return model
+
+
 def build_tuned_ann(input_dim: int, seed: int = 42):
     """Rebuild the tuned six-layer ANN preserved by the Y17 experiment."""
     import tensorflow as tf

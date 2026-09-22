@@ -53,6 +53,26 @@ class KnowledgeRetriever:
         """Return deduplicated scored chunks and the searches that produced them."""
         initial_queries = self._queries(question, queries)
         details = self._search(initial_queries)
+        profile_request = any(
+            term in question.casefold()
+            for term in (
+                "customer segment",
+                "buyer segment",
+                "customer profile",
+                "buyer profile",
+                "clustering",
+            )
+        )
+        if not profile_request:
+            details = [
+                item
+                for item in details
+                if not any(
+                    marker
+                    in (str(item.get("source", "")) + " " + str(item.get("section", ""))).casefold()
+                    for marker in ("segment", "cluster", "customer profile", "buyer profile")
+                )
+            ]
         return {
             "details": details[:6],
             "initial_queries": initial_queries,

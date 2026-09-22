@@ -22,5 +22,5 @@ def test_classification_pipeline_trains_and_persists(tmp_path):
     after_reload = reloaded.predict(data["X_valid"][:2], verbose=0)
     assert predictions.shape == prepared["y_valid"].shape
     np.testing.assert_allclose(after_reload, before_reload, rtol=1e-5, atol=1e-6)
-    assert after_reload.shape == (2, 5)
+    assert after_reload.shape == (2, 4)
     assert "Macro_F1" in metrics

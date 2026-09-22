@@ -5,7 +5,7 @@ import os
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-from .transport import decode_result, encode_conversation
+from ..transport import decode_result, encode_conversation
 
 
 class AssistantAPIClient:
@@ -72,6 +72,6 @@ def create_frontend_assistant():
         )
     # Import the heavier local runtime only when Streamlit is running the
     # backend in-process. HTTP frontend mode needs only this small client.
-    from .runtime import create_assistant
+    from ..runtime import create_assistant
 
     return create_assistant()

@@ -37,6 +37,13 @@ class AssistantDatasetTests(unittest.TestCase):
         catalog = DiamondCatalog(diamonds)
         self.assertNotIn("Unnamed: 0", catalog.diamonds.columns)
 
+    def test_maximum_budget_returns_options_nearest_the_budget_first(self):
+        result = self.catalog.search(
+            DiamondQueryPlan(search_dataset=True, max_price=5000), limit=20
+        )
+        self.assertTrue(result["price"].is_monotonic_decreasing)
+        self.assertLessEqual(result.iloc[0]["price"], 5000)
+
     def test_knowledge_chunking_is_deterministic_and_overlapping(self):
         text = "First paragraph.\n\n" + "A" * 30 + "\n\n" + "B" * 30
         first = chunk_text(text, size=45, overlap=8)

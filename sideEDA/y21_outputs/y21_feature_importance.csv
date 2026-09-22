@@ -1,0 +1,21 @@
+Feature,Importance
+categorical__cut_Fair,0.35431555
+categorical__color_D,0.06503438
+categorical__cut_Ideal,0.0625101
+numeric__carat,0.060942482
+categorical__color_E,0.04733219
+categorical__color_G,0.03870722
+numeric__Y21_XYRatio,0.032560788
+categorical__cut_Good,0.029896235
+categorical__color_J,0.028802237
+numeric__Y21_MeanXYZPerCaratCubeRoot,0.028739903
+numeric__Y21_AbsDepthError,0.027082555
+categorical__color_H,0.026966142
+categorical__cut_Premium,0.02595581
+numeric__depth,0.025685867
+categorical__cut_Very Good,0.02535347
+numeric__Y21_XYAbsDiff,0.024800282
+categorical__color_I,0.024458764
+categorical__color_F,0.024341512
+numeric__table,0.023631575
+numeric__Y21_DepthError,0.022882905

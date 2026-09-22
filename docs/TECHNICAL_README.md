@@ -244,7 +244,7 @@ python scripts/run_clustering.py
 python scripts/run_clustering.py --smoke
 ```
 
-The full command saves the strongest validation ANN for each course task and the strongest overall comparison under `benchmark_winner/`.
+The full command saves the validation-selected XGBoost course models and retains ANN and Random Forest artifacts for comparison.
 
 ## Notebooks
 
@@ -297,10 +297,11 @@ docker run --rm diamond-project
 | --- | --- |
 | `data/processed/classification/` | Feature, split, encoded, and statistics exports |
 | `data/processed/regression/` | Three price representations and statistics |
-| `models/classification/` | Primary ANN and preprocessing |
-| `models/classification/benchmark_winner/` | Best classification comparison |
-| `models/regression/` | Primary ANN, preprocessing, human context |
-| `models/regression/benchmark_winner/` | Best regression comparison |
+| `models/classification/` | Selected XGBoost classifier and preprocessing |
+| `models/classification/ann/`, `random_forest/` | Classification comparison artifacts |
+| `models/regression/` | Selected XGBoost regressor, preprocessing, human context |
+| `models/regression/ann/` | Regression ANN comparison artifact |
+| `models/regression/benchmark_winner/` | Named copy of the strongest regression comparison |
 | `models/clustering/` | Versioned K-Means pipeline and validation manifest |
 | `outputs/` | Metrics, profiles, figures, and reports |
 | `vector_db/chroma_v2/` | Local knowledge and preference vectors |

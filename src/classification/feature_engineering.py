@@ -1,136 +1,137 @@
-"""
-Feature definitions and engineered inputs for the diamond classification experiments.
+"""Physical-only Y23 features for ordered diamond-clarity classification.
 
-This file defines the categorical and numeric features used by each experiment.
-
-The experiments gradually add more information:
-
-Experiment 1:
-Physical diamond measurements and engineered geometry features.
-
-Experiment 2:
-Experiment 1 features plus the raw diamond price.
-
-Experiment 3:
-Experiment 2 features plus price-relative features such as price per carat,
-price per volume, and price per visible face area.
-
-The engineered physical features help describe diamond size, shape,
-proportions, density-like relationships, and dimensional symmetry.
+Price is intentionally excluded. Every maintained classifier receives the
+same physical representation so algorithm comparisons remain fair.
 """
 
 import numpy as np
+import pandas as pd
 
-# FEATURE GROUPS
-
-# Categorical diamond characteristics used by every experiment.
 CATEGORICAL_FEATURES = ["cut", "color"]
-
-
-# Raw physical measurements plus engineered geometry relationships.
-
-# Raw measurements:
-# carat = diamond weight
-# depth = total depth percentage
-# table = width of the top facet
-# x, y, z = physical diamond dimensions
-
-# REG_ features are engineered from those measurements.
-PHYSICAL_FEATURES = [
-    "carat", "depth", "table", "x", "y", "z",
-    "REG_FaceArea", "REG_Volume", "REG_AspectRatio", "REG_XYAsymmetry",
-    "REG_DepthToFace", "REG_WeightPerFace", "REG_WeightPerVolume",
-    "REG_TableDepthRatio"
+RAW_CLASSIFICATION_INPUTS = [
+    "carat",
+    "cut",
+    "color",
+    "depth",
+    "table",
+    "x",
+    "y",
+    "z",
 ]
 
-# Raw market price is introduced separately so we can test whether
-# price improves clarity prediction beyond physical measurements alone.
-RAW_PRICE_FEATURES = ["price"]
-
-
-# Price-relative features describe how expensive a diamond is compared
-# with its weight and physical dimensions.
-PRICE_RELATIVE_FEATURES = [
-    "PricePerCarat", "PricePerVolume",
-    "PricePerFaceArea", "PricePerFaceDiagonal"
+NUMERIC_FEATURES_ALL = [
+    "carat",
+    "depth",
+    "table",
+    "x",
+    "y",
+    "z",
+    "Y23_FaceArea",
+    "Y23_Volume",
+    "Y23_FaceDiagonal",
+    "Y23_XYRatio",
+    "Y23_XZRatio",
+    "Y23_YZRatio",
+    "Y23_XYAbsDiff",
+    "Y23_XZAbsDiff",
+    "Y23_YZAbsDiff",
+    "Y23_XYNormalizedDiff",
+    "Y23_XZNormalizedDiff",
+    "Y23_YZNormalizedDiff",
+    "Y23_XYSymmetryProxy",
+    "Y23_MeanXY",
+    "Y23_MeanXYZ",
+    "Y23_MaxDimension",
+    "Y23_MinDimension",
+    "Y23_DimensionRange",
+    "Y23_DimensionStd",
+    "Y23_DimensionCV",
+    "Y23_XPerCaratCubeRoot",
+    "Y23_YPerCaratCubeRoot",
+    "Y23_ZPerCaratCubeRoot",
+    "Y23_MeanXYPerCaratCubeRoot",
+    "Y23_MeanXYZPerCaratCubeRoot",
+    "Y23_CaratPerVolume",
+    "Y23_VolumePerCarat",
+    "Y23_CaratPerFaceArea",
+    "Y23_FaceAreaPerCarat",
+    "Y23_CaratPerMeanDimension",
+    "Y23_CalculatedDepthPct",
+    "Y23_DepthError",
+    "Y23_AbsDepthError",
+    "Y23_DepthTableRatio",
+    "Y23_TableDepthRatio",
+    "Y23_DepthToFaceDiagonal",
+    "Y23_DepthToFaceArea",
+    "Y23_Compactness",
+    "Y23_VolumeToMeanCube",
+    "Y23_DepthTimesTable",
+    "Y23_CaratTimesDepth",
+    "Y23_CaratTimesTable",
+    "Y23_CaratTimesXYAsymmetry",
+    "Y23_VolumeTimesDepth",
+    "Y23_FaceAreaTimesDepth",
 ]
 
-# EXPERIMENT FEATURE SETS
 
-# Experiment 1 asks:
-# How well can clarity be predicted using physical information only?
-EXPERIMENT_1_NUMERIC = PHYSICAL_FEATURES
+def engineer_features(frame: pd.DataFrame) -> pd.DataFrame:
+    """Create the notebook's physical Y23 features without using price."""
+    data = frame.copy()
+    data["Y23_FaceArea"] = data["x"] * data["y"]
+    data["Y23_Volume"] = data["x"] * data["y"] * data["z"]
+    data["Y23_FaceDiagonal"] = np.sqrt(data["x"] ** 2 + data["y"] ** 2)
 
-# Experiment 2 asks:
-# Does adding raw price improve clarity prediction?
-EXPERIMENT_2_NUMERIC = PHYSICAL_FEATURES + RAW_PRICE_FEATURES
+    data["Y23_XYRatio"] = data["x"] / data["y"]
+    data["Y23_XZRatio"] = data["x"] / data["z"]
+    data["Y23_YZRatio"] = data["y"] / data["z"]
+    data["Y23_XYAbsDiff"] = np.abs(data["x"] - data["y"])
+    data["Y23_XZAbsDiff"] = np.abs(data["x"] - data["z"])
+    data["Y23_YZAbsDiff"] = np.abs(data["y"] - data["z"])
 
-# Experiment 3 asks:
-# Do price-to-size relationships provide additional clarity information?
-EXPERIMENT_3_NUMERIC = PHYSICAL_FEATURES + RAW_PRICE_FEATURES + PRICE_RELATIVE_FEATURES
+    xy_mean = (data["x"] + data["y"]) / 2.0
+    xz_mean = (data["x"] + data["z"]) / 2.0
+    yz_mean = (data["y"] + data["z"]) / 2.0
+    data["Y23_XYNormalizedDiff"] = data["Y23_XYAbsDiff"] / xy_mean
+    data["Y23_XZNormalizedDiff"] = data["Y23_XZAbsDiff"] / xz_mean
+    data["Y23_YZNormalizedDiff"] = data["Y23_YZAbsDiff"] / yz_mean
+    data["Y23_XYSymmetryProxy"] = 1.0 - data["Y23_XYNormalizedDiff"]
 
+    dimensions = data[["x", "y", "z"]]
+    data["Y23_MeanXY"] = xy_mean
+    data["Y23_MeanXYZ"] = dimensions.mean(axis=1)
+    data["Y23_MaxDimension"] = dimensions.max(axis=1)
+    data["Y23_MinDimension"] = dimensions.min(axis=1)
+    data["Y23_DimensionRange"] = data["Y23_MaxDimension"] - data["Y23_MinDimension"]
+    data["Y23_DimensionStd"] = dimensions.std(axis=1, ddof=0)
+    data["Y23_DimensionCV"] = data["Y23_DimensionStd"] / data["Y23_MeanXYZ"]
 
-# FEATURE ENGINEERING
-def engineer_features(df):
-    """Create physical and price-relative features from the raw diamond data."""
+    carat_root = np.cbrt(data["carat"])
+    data["Y23_XPerCaratCubeRoot"] = data["x"] / carat_root
+    data["Y23_YPerCaratCubeRoot"] = data["y"] / carat_root
+    data["Y23_ZPerCaratCubeRoot"] = data["z"] / carat_root
+    data["Y23_MeanXYPerCaratCubeRoot"] = data["Y23_MeanXY"] / carat_root
+    data["Y23_MeanXYZPerCaratCubeRoot"] = data["Y23_MeanXYZ"] / carat_root
 
-    # Work on a copy so the original DataFrame is never changed.
-    df = df.copy()
+    data["Y23_CaratPerVolume"] = data["carat"] / data["Y23_Volume"]
+    data["Y23_VolumePerCarat"] = data["Y23_Volume"] / data["carat"]
+    data["Y23_CaratPerFaceArea"] = data["carat"] / data["Y23_FaceArea"]
+    data["Y23_FaceAreaPerCarat"] = data["Y23_FaceArea"] / data["carat"]
+    data["Y23_CaratPerMeanDimension"] = data["carat"] / data["Y23_MeanXYZ"]
 
-    # PHYSICAL / GEOMETRY FEATURES
+    data["Y23_CalculatedDepthPct"] = 2.0 * data["z"] / (data["x"] + data["y"]) * 100.0
+    data["Y23_DepthError"] = data["depth"] - data["Y23_CalculatedDepthPct"]
+    data["Y23_AbsDepthError"] = np.abs(data["Y23_DepthError"])
+    data["Y23_DepthTableRatio"] = data["depth"] / data["table"]
+    data["Y23_TableDepthRatio"] = data["table"] / data["depth"]
+    data["Y23_DepthToFaceDiagonal"] = data["z"] / data["Y23_FaceDiagonal"]
+    data["Y23_DepthToFaceArea"] = data["z"] / data["Y23_FaceArea"]
+    data["Y23_Compactness"] = data["carat"] / data["Y23_MeanXYZ"] ** 3
+    data["Y23_VolumeToMeanCube"] = data["Y23_Volume"] / data["Y23_MeanXYZ"] ** 3
 
-    # Approximate visible face area using diamond width × length.
-    # Larger values represent a larger top-facing physical footprint.
-    df["REG_FaceArea"] = df["x"] * df["y"]
-
-    # Approximate physical volume using all three dimensions.
-    # This is not the exact geometric volume of a diamond, but it gives
-    # the model a useful size relationship between x, y, and z.
-    df["REG_Volume"] = df["x"] * df["y"] * df["z"]
-
-    # Compare x and y dimensions to describe the diamond's shape.
-    # Values close to 1 mean x and y are very similar.
-    df["REG_AspectRatio"] = df["x"] / df["y"].replace(0, np.nan)
-
-    # Measure absolute difference between x and y.
-    # Larger values indicate greater dimensional asymmetry.
-    df["REG_XYAsymmetry"] = abs(df["x"] - df["y"])
-
-    # Calculate the diagonal across the x-y face.
-    # This gives another overall measurement of the diamond's visible size.
-    face_diagonal = np.sqrt(df["x"]**2 + df["y"]**2)
-
-    # Compare diamond depth with its visible face size.
-    # This helps represent whether a diamond is relatively deep or shallow.
-    df["REG_DepthToFace"] = df["z"] / face_diagonal.replace(0, np.nan)
-
-    # Compare carat weight with visible face area.
-    # Two diamonds with similar carat weights may distribute that weight differently.
-    df["REG_WeightPerFace"] = df["carat"] / df["REG_FaceArea"].replace(0, np.nan)
-
-    # Compare carat weight with estimated physical volume.
-    # This captures another relationship between weight and physical dimensions.
-    df["REG_WeightPerVolume"] = df["carat"] / df["REG_Volume"].replace(0, np.nan)
-
-    # Compare table percentage with depth percentage.
-    # This gives the model another representation of diamond proportions.
-    df["REG_TableDepthRatio"] = df["table"] / df["depth"].replace(0, np.nan)
-
-
-    # PRICE-RELATIVE FEATURES
-    # Price per carat measures how much value is associated with each unit of weight.
-    df["PricePerCarat"] = df["price"] / df["carat"].replace(0, np.nan)
-
-    # Price relative to estimated physical volume.
-    df["PricePerVolume"] = df["price"] / df["REG_Volume"].replace(0, np.nan)
-
-    # Price relative to the diamond's visible face area.
-    df["PricePerFaceArea"] = df["price"] / df["REG_FaceArea"].replace(0, np.nan)
-
-    # Price relative to the diagonal size of the diamond's visible face.
-    df["PricePerFaceDiagonal"] = df["price"] / face_diagonal.replace(0, np.nan)
-
-    # Division by zero can create positive or negative infinity.
-    # Convert these values to NaN so the preprocessing pipeline can handle them safely.
-    return df.replace([np.inf, -np.inf], np.nan)
-
+    data["Y23_DepthTimesTable"] = data["depth"] * data["table"]
+    data["Y23_CaratTimesDepth"] = data["carat"] * data["depth"]
+    data["Y23_CaratTimesTable"] = data["carat"] * data["table"]
+    data["Y23_CaratTimesXYAsymmetry"] = data["carat"] * data["Y23_XYNormalizedDiff"]
+    data["Y23_VolumeTimesDepth"] = data["Y23_Volume"] * data["depth"]
+    data["Y23_FaceAreaTimesDepth"] = data["Y23_FaceArea"] * data["depth"]
+    return data.replace([np.inf, -np.inf], np.nan)

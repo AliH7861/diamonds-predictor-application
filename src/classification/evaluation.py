@@ -57,6 +57,12 @@ def classification_metrics(y_true, y_pred) -> dict[str, float]:
     # Percentage of predictions that missed the correct clarity by more than one family.
     severe_error = (family_error > 1).mean() * 100
 
+    # Select the default model using an equal-weighted quality score. This avoids
+    # choosing a model that is strong on one metric but weak across rare classes.
+    balanced_selection_score = np.mean(
+        [macro_precision, macro_recall, macro_f1, balanced_accuracy]
+    )
+
     # Return one consistent metric dictionary for notebooks, tests, and model comparison.
     return {
         "Accuracy": accuracy,
@@ -65,6 +71,7 @@ def classification_metrics(y_true, y_pred) -> dict[str, float]:
         "Macro_F1": macro_f1,
         "Weighted_F1": weighted_f1,
         "Balanced_Accuracy": balanced_accuracy,
+        "Balanced_Selection_Score": balanced_selection_score,
         "Mean_Family_Error": mean_family_error,
         "Within_1_Family": within_1_family,
         "Severe_Error": severe_error
@@ -80,4 +87,3 @@ def evaluate_model(y_true, y_pred, experiment_name: str, model_name: str) -> dic
     # Add experiment and model names so results from every run can be placed
     # directly into the same comparison DataFrame.
     return {"Experiment": experiment_name, "Model": model_name, **metrics}
-

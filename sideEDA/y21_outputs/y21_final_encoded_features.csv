@@ -1,0 +1,21 @@
+Final_Model_Feature
+numeric__carat
+numeric__depth
+numeric__table
+numeric__Y21_XYRatio
+numeric__Y21_XYAbsDiff
+numeric__Y21_MeanXYZPerCaratCubeRoot
+numeric__Y21_DepthError
+numeric__Y21_AbsDepthError
+categorical__cut_Fair
+categorical__cut_Good
+categorical__cut_Ideal
+categorical__cut_Premium
+categorical__cut_Very Good
+categorical__color_D
+categorical__color_E
+categorical__color_F
+categorical__color_G
+categorical__color_H
+categorical__color_I
+categorical__color_J

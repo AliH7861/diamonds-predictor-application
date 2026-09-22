@@ -61,7 +61,7 @@ class OllamaClient:
             "think": False,
             "keep_alive": "30m",
             # Streaming keeps longer answers readable while they are generated.
-            "options": {"temperature": 0, "num_predict": 400},
+            "options": {"temperature": 0, "num_predict": 220},
             "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
         }
         if on_token is None:

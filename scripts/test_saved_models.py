@@ -46,7 +46,7 @@ def test_regression_ann(directory: Path) -> dict:
 
 
 def run_checks(models_dir: Path, skip_benchmark: bool, smoke: bool) -> None:
-    """Load primary ANN artifacts and the strongest benchmark artifacts."""
+    """Load default artifacts and separately saved algorithm artifacts."""
     classification_dir = models_dir / "classification"
     regression_dir = models_dir / "regression"
     production_ready = (classification_dir / "metadata.json").is_file() and (
@@ -74,15 +74,15 @@ def run_checks(models_dir: Path, skip_benchmark: bool, smoke: bool) -> None:
         ]
     else:
         checks = [
-            ("Classification primary ANN", lambda: test_classification(classification_dir)),
-            ("Regression primary ANN", lambda: test_regression(regression_dir)),
+            ("Classification default", lambda: test_classification(classification_dir)),
+            ("Regression selected model", lambda: test_regression(regression_dir)),
         ]
         if not skip_benchmark:
             checks.extend(
                 [
                     (
-                        "Classification benchmark",
-                        lambda: test_classification(classification_dir / "benchmark_winner"),
+                        "Classification ANN",
+                        lambda: test_classification(classification_dir / "ann"),
                     ),
                     (
                         "Regression benchmark",
